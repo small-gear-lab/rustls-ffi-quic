@@ -92,7 +92,7 @@ pub enum rustls_handshake_kind {
 /// The returned `rustls_str` has a static lifetime equal to that of the program and does
 /// not need to be manually freed.
 #[no_mangle]
-pub extern "C" fn rustls_handshake_kind_str(kind: rustls_handshake_kind) -> rustls_str<'static> {
+pub extern "C" fn rustlsq_handshake_kind_str(kind: rustls_handshake_kind) -> rustls_str<'static> {
     ffi_panic_boundary! {
         rustls_str::from_str_unchecked(match kind {
             rustls_handshake_kind::Unknown => "unknown",

@@ -108,7 +108,7 @@ main(const int argc, const char **argv)
 
 cleanup:
   // Free the rustls TLS config.
-  rustls_client_config_free(tls_config);
+  rustlsq_client_config_free(tls_config);
 
 #ifdef _WIN32
   WSACleanup();
@@ -265,7 +265,7 @@ new_tls_config(const demo_client_options *opts)
     LOG("customized to use ciphersuite: %s", opts->custom_ciphersuite_name);
 
     const rustls_result rr =
-      rustls_client_config_builder_new_custom(custom_provider,
+      rustlsq_client_config_builder_new_custom(custom_provider,
                                               default_tls_versions,
                                               default_tls_versions_len,
                                               &config_builder);
@@ -275,65 +275,65 @@ new_tls_config(const demo_client_options *opts)
     }
   }
   else {
-    config_builder = rustls_client_config_builder_new();
+    config_builder = rustlsq_client_config_builder_new();
   }
 
   // Then configure a verifier for the client config builder.
   if(opts->use_platform_verifier) {
     const rustls_result rr =
-      rustls_platform_server_cert_verifier(&server_cert_verifier);
+      rustlsq_platform_server_cert_verifier(&server_cert_verifier);
     if(rr != RUSTLS_RESULT_OK) {
       print_error("failed to construct platform verifier", rr);
       goto cleanup;
     }
-    rustls_client_config_builder_set_server_verifier(config_builder,
+    rustlsq_client_config_builder_set_server_verifier(config_builder,
                                                      server_cert_verifier);
   }
   else if(opts->use_ca_certificate_verifier != NULL) {
-    server_cert_root_store_builder = rustls_root_cert_store_builder_new();
-    rustls_result rr = rustls_root_cert_store_builder_load_roots_from_file(
+    server_cert_root_store_builder = rustlsq_root_cert_store_builder_new();
+    rustls_result rr = rustlsq_root_cert_store_builder_load_roots_from_file(
       server_cert_root_store_builder, opts->use_ca_certificate_verifier, true);
     if(rr != RUSTLS_RESULT_OK) {
       print_error("loading trusted certificates", rr);
       goto cleanup;
     }
-    rr = rustls_root_cert_store_builder_build(server_cert_root_store_builder,
+    rr = rustlsq_root_cert_store_builder_build(server_cert_root_store_builder,
                                               &server_cert_root_store);
     if(rr != RUSTLS_RESULT_OK) {
       goto cleanup;
     }
     server_cert_verifier_builder =
-      rustls_web_pki_server_cert_verifier_builder_new(server_cert_root_store);
+      rustlsq_web_pki_server_cert_verifier_builder_new(server_cert_root_store);
 
-    rr = rustls_web_pki_server_cert_verifier_builder_build(
+    rr = rustlsq_web_pki_server_cert_verifier_builder_build(
       server_cert_verifier_builder, &server_cert_verifier);
     if(rr != RUSTLS_RESULT_OK) {
       goto cleanup;
     }
-    rustls_client_config_builder_set_server_verifier(config_builder,
+    rustlsq_client_config_builder_set_server_verifier(config_builder,
                                                      server_cert_verifier);
   }
   else if(opts->use_no_verifier) {
-    rustls_client_config_builder_dangerous_set_certificate_verifier(
+    rustlsq_client_config_builder_dangerous_set_certificate_verifier(
       config_builder, unsafe_skip_verify);
   }
 
   // Then configure ECH if required.
   if(opts->use_ech_grease) {
-    const rustls_hpke *hpke = rustls_supported_hpke();
+    const rustls_hpke *hpke = rustlsq_supported_hpke();
     if(hpke == NULL) {
       LOG_SIMPLE("client: no HPKE suites for ECH available");
       goto cleanup;
     }
     const rustls_result rr =
-      rustls_client_config_builder_enable_ech_grease(config_builder, hpke);
+      rustlsq_client_config_builder_enable_ech_grease(config_builder, hpke);
     if(rr != RUSTLS_RESULT_OK) {
       print_error("enabling ECH GREASE", rr);
       goto cleanup;
     }
   }
   else if(opts->use_ech_config_list_files) {
-    const rustls_hpke *hpke = rustls_supported_hpke();
+    const rustls_hpke *hpke = rustlsq_supported_hpke();
     if(hpke == NULL) {
       LOG_SIMPLE("client: no HPKE suites for ECH available");
       goto cleanup;
@@ -383,7 +383,7 @@ new_tls_config(const demo_client_options *opts)
       // Try to enable ECH with the config list. This may error if none
       // of the ECH configs are valid/compatible.
       const rustls_result rr =
-        rustls_client_config_builder_enable_ech(config_builder,
+        rustlsq_client_config_builder_enable_ech(config_builder,
                                                 (uint8_t *)ech_config_list_buf,
                                                 ech_config_list_len,
                                                 hpke);
@@ -418,24 +418,24 @@ new_tls_config(const demo_client_options *opts)
     if(certified_key == NULL) {
       goto cleanup;
     }
-    rustls_client_config_builder_set_certified_key(
+    rustlsq_client_config_builder_set_certified_key(
       config_builder, &certified_key, 1);
     // Per docs we are allowed to free the certified key after giving it to the
     // builder.
-    rustls_certified_key_free(certified_key);
+    rustlsq_certified_key_free(certified_key);
   }
 
   // Then configure SSLKEYLOG as required
   if(opts->use_ssl_keylog_file != NULL) {
     const rustls_result rr =
-      rustls_client_config_builder_set_key_log_file(config_builder);
+      rustlsq_client_config_builder_set_key_log_file(config_builder);
     if(rr != RUSTLS_RESULT_OK) {
       print_error("enabling keylog", rr);
       goto cleanup;
     }
   }
   else if(opts->use_stderr_keylog) {
-    const rustls_result rr = rustls_client_config_builder_set_key_log(
+    const rustls_result rr = rustlsq_client_config_builder_set_key_log(
       config_builder, stderr_key_log_cb, NULL);
     if(rr != RUSTLS_RESULT_OK) {
       print_error("enabling keylog", rr);
@@ -446,7 +446,7 @@ new_tls_config(const demo_client_options *opts)
   // Then configure ALPN.
   rustls_slice_bytes alpn_http11 = { .data = (unsigned char *)"http/1.1",
                                      .len = 8 };
-  rustls_result rr = rustls_client_config_builder_set_alpn_protocols(
+  rustls_result rr = rustlsq_client_config_builder_set_alpn_protocols(
     config_builder, &alpn_http11, 1);
   if(rr != RUSTLS_RESULT_OK) {
     print_error("setting ALPN", rr);
@@ -455,7 +455,7 @@ new_tls_config(const demo_client_options *opts)
 
   // Then configure an RFC 9149 ticket request if required.
   if(opts->request_tls13_tickets >= 0) {
-    rr = rustls_client_config_builder_set_send_ticket_request(
+    rr = rustlsq_client_config_builder_set_send_ticket_request(
       config_builder,
       (uint8_t)opts->request_tls13_tickets,
       (uint8_t)opts->request_tls13_tickets);
@@ -468,7 +468,7 @@ new_tls_config(const demo_client_options *opts)
   // Finally consume the config_builder by trying to build it into a client
   // config. We can't use the config_builder (even to free it!) after this
   // point.
-  rr = rustls_client_config_builder_build(config_builder, &result);
+  rr = rustlsq_client_config_builder_build(config_builder, &result);
   config_builder = NULL;
   if(rr != RUSTLS_RESULT_OK) {
     print_error("building client config builder", rr);
@@ -476,13 +476,13 @@ new_tls_config(const demo_client_options *opts)
   }
 
 cleanup:
-  rustls_root_cert_store_builder_free(server_cert_root_store_builder);
-  rustls_root_cert_store_free(server_cert_root_store);
-  rustls_web_pki_server_cert_verifier_builder_free(
+  rustlsq_root_cert_store_builder_free(server_cert_root_store_builder);
+  rustlsq_root_cert_store_free(server_cert_root_store);
+  rustlsq_web_pki_server_cert_verifier_builder_free(
     server_cert_verifier_builder);
-  rustls_server_cert_verifier_free(server_cert_verifier);
-  rustls_crypto_provider_free(custom_provider);
-  rustls_client_config_builder_free(config_builder);
+  rustlsq_server_cert_verifier_free(server_cert_verifier);
+  rustlsq_crypto_provider_free(custom_provider);
+  rustlsq_client_config_builder_free(config_builder);
   return result;
 }
 
@@ -519,15 +519,15 @@ do_get_request(const demo_client_request_options *options)
     FD_ZERO(&read_fds);
     FD_ZERO(&write_fds);
 
-    if(rustls_connection_wants_read(demo_conn->rconn)) {
+    if(rustlsq_connection_wants_read(demo_conn->rconn)) {
       FD_SET(demo_conn->sockfd, &read_fds);
     }
-    if(rustls_connection_wants_write(demo_conn->rconn)) {
+    if(rustlsq_connection_wants_write(demo_conn->rconn)) {
       FD_SET(demo_conn->sockfd, &write_fds);
     }
 
-    if(!rustls_connection_wants_read(demo_conn->rconn) &&
-       !rustls_connection_wants_write(demo_conn->rconn)) {
+    if(!rustlsq_connection_wants_read(demo_conn->rconn) &&
+       !rustlsq_connection_wants_write(demo_conn->rconn)) {
       LOG_SIMPLE("rustls wants neither read nor write. Breaking i/o loop.");
       break;
     }
@@ -584,7 +584,7 @@ do_get_request(const demo_client_request_options *options)
   // Verify the expected number of TLS 1.3 session tickets were received.
   if(options->expect_tls13_tickets >= 0) {
     const uint32_t tickets =
-      rustls_connection_get_tls13_tickets_received(demo_conn->rconn);
+      rustlsq_connection_get_tls13_tickets_received(demo_conn->rconn);
     if(tickets != (uint32_t)options->expect_tls13_tickets) {
       LOG("expected %d TLS 1.3 ticket(s), received %u",
           options->expect_tls13_tickets,
@@ -647,13 +647,13 @@ demo_client_connect(const demo_client_request_options *options)
 
   // Construct the rustls request with the client config. Use a temporary copy
   // of the hostname to ensure the connection does not retain the caller's
-  // server_name buffer after rustls_client_connection_new returns.
+  // server_name buffer after rustlsq_client_connection_new returns.
   char *server_name = strdup(options->hostname);
   if(server_name == NULL) {
     perror("client: server_name strdup");
     goto cleanup;
   }
-  const rustls_result rr = rustls_client_connection_new(
+  const rustls_result rr = rustlsq_client_connection_new(
     options->tls_config, server_name, &demo_conn->rconn);
   free(server_name);
   if(rr != RUSTLS_RESULT_OK) {
@@ -671,8 +671,8 @@ demo_client_connect(const demo_client_request_options *options)
   data->verify_arg = "verify_arg";
   demo_conn->data = data;
 
-  rustls_connection_set_userdata(demo_conn->rconn, data);
-  rustls_connection_set_log_callback(demo_conn->rconn, log_cb);
+  rustlsq_connection_set_userdata(demo_conn->rconn, data);
+  rustlsq_connection_set_log_callback(demo_conn->rconn, log_cb);
 
   return demo_conn;
 
@@ -757,7 +757,7 @@ demo_client_connection_write_get(const demo_client_connection *demo_conn)
   }
 
   // Construct a plaintext HTTP request buffer.
-  const rustls_str version = rustls_version();
+  const rustls_str version = rustlsq_version();
   char get_request_buf[2048];
   int get_request_size =
     snprintf(get_request_buf,
@@ -775,7 +775,7 @@ demo_client_connection_write_get(const demo_client_connection *demo_conn)
 
   // Write the plaintext to the rustls connection.
   size_t n = 0;
-  const rustls_result rr = rustls_connection_write(
+  const rustls_result rr = rustlsq_connection_write(
     demo_conn->rconn, (uint8_t *)get_request_buf, get_request_size, &n);
   if(rr != RUSTLS_RESULT_OK) {
     LOG_SIMPLE(
@@ -797,7 +797,7 @@ demo_client_connection_read_tls(demo_client_connection *demo_conn)
   size_t n = 0;
 
   const rustls_io_result io_res =
-    rustls_connection_read_tls(demo_conn->rconn, read_cb, demo_conn->data, &n);
+    rustlsq_connection_read_tls(demo_conn->rconn, read_cb, demo_conn->data, &n);
 
   if(io_res == EAGAIN) {
     return DEMO_AGAIN;
@@ -814,7 +814,7 @@ demo_client_connection_read_tls(demo_client_connection *demo_conn)
     return DEMO_EOF;
   }
 
-  rustls_result rr = rustls_connection_process_new_packets(demo_conn->rconn);
+  rustls_result rr = rustlsq_connection_process_new_packets(demo_conn->rconn);
   if(rr != RUSTLS_RESULT_OK) {
     print_error("processing new TLS packets", rr);
     return DEMO_ERROR;
@@ -830,13 +830,13 @@ demo_client_connection_read_tls(demo_client_connection *demo_conn)
     char *buf = bytevec_writeable(bv);
     const size_t avail = bytevec_available(bv);
 
-    rr = rustls_connection_read(demo_conn->rconn, (uint8_t *)buf, avail, &n);
+    rr = rustlsq_connection_read(demo_conn->rconn, (uint8_t *)buf, avail, &n);
     if(rr == RUSTLS_RESULT_PLAINTEXT_EMPTY) {
       /* This is expected. It just means "no more bytes for now." */
       return DEMO_OK;
     }
     if(rr != RUSTLS_RESULT_OK) {
-      print_error("error in rustls_connection_read", rr);
+      print_error("error in rustlsq_connection_read", rr);
       return DEMO_ERROR;
     }
     if(n == 0) {
@@ -877,15 +877,15 @@ demo_client_connection_write_tls(const demo_client_connection *demo_conn)
 
 #if !defined(_WIN32)
   if(demo_conn->options->use_vectored_io) {
-    io_res = rustls_connection_write_tls_vectored(
+    io_res = rustlsq_connection_write_tls_vectored(
       demo_conn->rconn, write_vectored_cb, demo_conn->data, &n);
   }
   else {
-    io_res = rustls_connection_write_tls(
+    io_res = rustlsq_connection_write_tls(
       demo_conn->rconn, write_cb, demo_conn->data, &n);
   }
 #else
-  io_res = rustls_connection_write_tls(
+  io_res = rustlsq_connection_write_tls(
     demo_conn->rconn, write_cb, demo_conn->data, &n);
 #endif
 
@@ -909,7 +909,7 @@ demo_client_connection_free(demo_client_connection *conn)
   }
 
   if(conn->rconn != NULL) {
-    rustls_connection_free(conn->rconn);
+    rustlsq_connection_free(conn->rconn);
   }
 
   if(conn->data != NULL) {
@@ -934,7 +934,7 @@ unsafe_skip_verify(void *userdata,
   size_t i = 0;
   const rustls_slice_slice_bytes *intermediates =
     params->intermediate_certs_der;
-  const size_t intermediates_len = rustls_slice_slice_bytes_len(intermediates);
+  const size_t intermediates_len = rustlsq_slice_slice_bytes_len(intermediates);
   const conndata *conn = (struct conndata *)userdata;
 
   LOG("custom certificate verifier called for %.*s",
@@ -944,7 +944,7 @@ unsafe_skip_verify(void *userdata,
   LOG_SIMPLE("intermediates:");
   for(i = 0; i < intermediates_len; i++) {
     const rustls_slice_bytes bytes =
-      rustls_slice_slice_bytes_get(intermediates, i);
+      rustlsq_slice_slice_bytes_get(intermediates, i);
     if(bytes.data != NULL) {
       LOG("   intermediate, len = %zu", bytes.len);
     }

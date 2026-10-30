@@ -220,7 +220,7 @@ impl rustls_result {
     /// If `buf` or `out_n` is NULL, this function does nothing. The caller retains ownership of
     /// `buf`, and the function does not retain it.
     #[no_mangle]
-    pub extern "C" fn rustls_error(
+    pub extern "C" fn rustlsq_error(
         result: c_uint,
         buf: *mut c_char,
         len: size_t,
@@ -245,7 +245,7 @@ impl rustls_result {
 
     /// Returns true if the `result` is a certificate-related error.
     #[no_mangle]
-    pub extern "C" fn rustls_result_is_cert_error(result: c_uint) -> bool {
+    pub extern "C" fn rustlsq_result_is_cert_error(result: c_uint) -> bool {
         use rustls_result::*;
         matches!(
             rustls_result::from(result),
@@ -291,7 +291,7 @@ impl Display for rustls_result {
             ),
             PlaintextEmpty => write!(
                 f,
-                "no plaintext available; call rustls_connection_read_tls again"
+                "no plaintext available; call rustlsq_connection_read_tls again"
             ),
             AcceptorNotReady => write!(
                 f,
@@ -786,15 +786,15 @@ mod tests {
     fn test_rustls_error() {
         let mut buf = [0 as c_char; 512];
         let mut n = 0;
-        rustls_result::rustls_error(0, &mut buf as *mut _, buf.len(), &mut n);
+        rustls_result::rustlsq_error(0, &mut buf as *mut _, buf.len(), &mut n);
         let output = String::from_utf8(buf[0..n].iter().map(|b| *b as u8).collect()).unwrap();
         assert_eq!(&output, "a parameter had an invalid value");
 
-        rustls_result::rustls_error(7000, &mut buf as *mut _, buf.len(), &mut n);
+        rustls_result::rustlsq_error(7000, &mut buf as *mut _, buf.len(), &mut n);
         let output = String::from_utf8(buf[0..n].iter().map(|b| *b as u8).collect()).unwrap();
         assert_eq!(&output, "OK");
 
-        rustls_result::rustls_error(7101, &mut buf as *mut _, buf.len(), &mut n);
+        rustls_result::rustlsq_error(7101, &mut buf as *mut _, buf.len(), &mut n);
         let output = String::from_utf8(buf[0..n].iter().map(|b| *b as u8).collect()).unwrap();
         assert_eq!(&output, "peer sent no certificates");
     }
@@ -802,18 +802,18 @@ mod tests {
     #[test]
     fn test_rustls_error_into_empty_buffer() {
         let mut n = 99;
-        rustls_result::rustls_error(0, &mut [] as *mut _, 0, &mut n);
+        rustls_result::rustlsq_error(0, &mut [] as *mut _, 0, &mut n);
         assert_eq!(n, 0);
     }
 
     #[test]
     fn test_rustls_result_is_cert_error() {
-        assert!(!rustls_result::rustls_result_is_cert_error(0));
-        assert!(!rustls_result::rustls_result_is_cert_error(7000));
+        assert!(!rustls_result::rustlsq_result_is_cert_error(0));
+        assert!(!rustls_result::rustlsq_result_is_cert_error(7000));
 
         // Test CertificateError range.
         for id in 7121..=7131 {
-            assert!(rustls_result::rustls_result_is_cert_error(id));
+            assert!(rustls_result::rustlsq_result_is_cert_error(id));
         }
     }
 }

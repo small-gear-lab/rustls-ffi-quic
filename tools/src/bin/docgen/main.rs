@@ -481,7 +481,7 @@ fn process_typedef_item(
         // e.g. `typedef uint32_t (*rustls_verify_server_cert_callback)(...);`
         "primitive_type" if func_declarator => Item::from(CallbackItem::new(metadata, item, src)?),
 
-        // e.g. `typedef rustls_io_result (*rustls_read_callback)(...);`
+        // e.g. `typedef rustls_io_result (*rustlsq_read_callback)(...);`
         "type_identifier" if func_declarator => Item::from(CallbackItem::new(metadata, item, src)?),
 
         // e.g. `typedef const struct rustls_certified_key *(*rustls_client_hello_callback)(...);`
@@ -725,7 +725,7 @@ impl TypeAliasItem {
 
 /// A function pointer typedef for a callback function.
 ///
-/// E.g. `typedef rustls_io_result (*rustls_read_callback)(void *userdata, ...);`
+/// E.g. `typedef rustls_io_result (*rustlsq_read_callback)(void *userdata, ...);`
 #[derive(Debug, Serialize)]
 struct CallbackItem {
     anchor: String,
@@ -751,7 +751,7 @@ impl CallbackItem {
 
 /// A function prototype definition.
 ///
-/// E.g. `void rustls_acceptor_free(struct rustls_acceptor *acceptor);`
+/// E.g. `void rustlsq_acceptor_free(struct rustls_acceptor *acceptor);`
 #[derive(Debug, Serialize)]
 struct FunctionItem {
     anchor: String,
@@ -813,9 +813,9 @@ impl ExternItem {
 /// Return a function's name.
 ///
 /// Queries for function names from simple function declarators like
-///  `rustls_io_result rustls_acceptor_read_tls(...)`
+///  `rustls_io_result rustlsq_acceptor_read_tls(...)`
 /// or, pointers to functions that have a parenthesized name like
-///  `typedef rustls_io_result (*rustls_read_callback)(...)`
+///  `typedef rustls_io_result (*rustlsq_read_callback)(...)`
 ///
 /// Panics if there is no match.
 fn function_identifier(node: Node, src: &[u8]) -> String {
@@ -932,7 +932,7 @@ mod tests {
             "alias-rustls-io-result".to_string(),
         ]);
         let mut comment = Comment(
-            "Call `rustls_connection_write_tls()` with a `rustls_write_callback`. \
+            "Call `rustlsq_connection_write_tls()` with a `rustls_write_callback`. \
              It returns `RUSTLS_RESULT_OK` as a `rustls_io_result`."
                 .to_string(),
         );
@@ -941,7 +941,7 @@ mod tests {
 
         assert_eq!(
             comment.0,
-            "Call [`rustls_connection_write_tls()`](#rustls-connection-write-tls) with a \
+            "Call [`rustlsq_connection_write_tls()`](#rustls-connection-write-tls) with a \
              [`rustls_write_callback`](#rustls-write-callback). It returns \
              [`RUSTLS_RESULT_OK`](#rustls-result-ok) as a \
              [`rustls_io_result`](#alias-rustls-io-result)."

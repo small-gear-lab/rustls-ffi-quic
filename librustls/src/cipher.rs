@@ -23,7 +23,7 @@ impl rustls_supported_ciphersuite {
     ///
     /// [IANA TLS Cipher Suites registry]: https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-4
     #[no_mangle]
-    pub extern "C" fn rustls_supported_ciphersuite_get_suite(
+    pub extern "C" fn rustlsq_supported_ciphersuite_get_suite(
         supported_ciphersuite: *const rustls_supported_ciphersuite,
     ) -> u16 {
         let supported_ciphersuite = try_ref_from_ptr!(supported_ciphersuite);
@@ -43,7 +43,7 @@ impl rustls_supported_ciphersuite {
 /// empty string. The lifetime of the `rustls_str` is the lifetime of the program,
 /// it does not need to be freed.
 #[no_mangle]
-pub extern "C" fn rustls_supported_ciphersuite_get_name(
+pub extern "C" fn rustlsq_supported_ciphersuite_get_name(
     supported_ciphersuite: *const rustls_supported_ciphersuite,
 ) -> rustls_str<'static> {
     let supported_ciphersuite = try_ref_from_ptr!(supported_ciphersuite);
@@ -58,7 +58,7 @@ pub extern "C" fn rustls_supported_ciphersuite_get_name(
 ///
 /// See also `RUSTLS_ALL_VERSIONS`.
 #[no_mangle]
-pub extern "C" fn rustls_supported_ciphersuite_protocol_version(
+pub extern "C" fn rustlsq_supported_ciphersuite_protocol_version(
     supported_ciphersuite: *const rustls_supported_ciphersuite,
 ) -> rustls_tls_version {
     ffi_panic_boundary! {
@@ -69,21 +69,21 @@ pub extern "C" fn rustls_supported_ciphersuite_protocol_version(
 #[cfg(all(test, any(feature = "ring", feature = "aws-lc-rs")))]
 mod tests {
     use crate::crypto_provider::{
-        rustls_default_crypto_provider_ciphersuites_get,
-        rustls_default_crypto_provider_ciphersuites_len,
+        rustlsq_default_crypto_provider_ciphersuites_get,
+        rustlsq_default_crypto_provider_ciphersuites_len,
     };
 
     use super::*;
 
     #[test]
     fn default_cipher_suites() {
-        let num_suites = rustls_default_crypto_provider_ciphersuites_len();
+        let num_suites = rustlsq_default_crypto_provider_ciphersuites_len();
         assert!(num_suites > 2);
         for i in 0..num_suites {
-            let suite = rustls_default_crypto_provider_ciphersuites_get(i);
-            let name = rustls_supported_ciphersuite_get_name(suite);
+            let suite = rustlsq_default_crypto_provider_ciphersuites_get(i);
+            let name = rustlsq_supported_ciphersuite_get_name(suite);
             let name = unsafe { name.to_str() };
-            let proto = rustls_supported_ciphersuite_protocol_version(suite);
+            let proto = rustlsq_supported_ciphersuite_protocol_version(suite);
             println!("{i}: {name} {proto:?}");
         }
     }
