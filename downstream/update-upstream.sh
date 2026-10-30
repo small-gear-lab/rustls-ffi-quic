@@ -11,8 +11,9 @@
 # applied again as a patch. main is not touched: all of it happens on the branch update/<tag>, to be looked
 # at, tested and then made the new main by hand (the commands are printed at the end).
 #
-# A cherry-pick that conflicts only in librustls/src/rustls.h is settled by making the header again with
-# cbindgen (it is generated). Any other conflict stops the move, with the branch left as it is, and the
+# Two kinds of conflict are settled: one only in librustls/src/rustls.h is settled by making the header again
+# with cbindgen (it is generated), and a file that we delete but that the release changed (the CI of rustls-ffi,
+# say) stays deleted. Any other conflict stops the move, with the branch left as it is, and the
 # way back is printed. Needs: git, cbindgen (cargo install cbindgen), cargo for the tests.
 set -euo pipefail
 
@@ -71,19 +72,30 @@ for c in "${carry[@]}"; do
         echo "  picked   $subject"
         continue
     fi
-    conflicted=$(git diff --name-only --diff-filter=U)
-    if [ "$conflicted" = "librustls/src/rustls.h" ]; then
-        git checkout --ours -- librustls/src/rustls.h   # "ours" is the new release here
-        make_header
-        git add librustls/src/rustls.h
-        GIT_EDITOR=true git cherry-pick --continue >/dev/null
-        echo "  picked   $subject (rustls.h made again)"
-    else
-        echo "conflict in: $conflicted" >&2
+    # `UD`: we delete a file that the release changed; `UU` in rustls.h: the generated header
+    others=$(git status --porcelain | awk '/^(UD|DU|AU|UA|AA|DD|UU)/ { print $2 }' | grep -v -x -e 'librustls/src/rustls.h' || true)
+    deleted=$(git status --porcelain | awk '/^UD/ { print $2 }')
+    header=$(git status --porcelain | awk '/^UU/ && $2 == "librustls/src/rustls.h" { print $2 }')
+    if [ -n "$(echo "$others" | tr -d '[:space:]')" ] && [ "$others" != "$deleted" ]; then
+        echo "conflict in: $(git diff --name-only --diff-filter=U | tr '\n' ' ')" >&2
         echo "stopped at: $subject" >&2
         echo "settle it by hand and go on with 'git cherry-pick --continue', or go back: git cherry-pick --abort; git switch main; git branch -D $branch" >&2
         exit 1
     fi
+    note=
+    if [ -n "$deleted" ]; then
+        # shellcheck disable=SC2086
+        git rm -q -- $deleted
+        note=" ($(echo "$deleted" | wc -w) files the release changed stay deleted)"
+    fi
+    if [ -n "$header" ]; then
+        git checkout --ours -- librustls/src/rustls.h   # "ours" is the new release here
+        make_header
+        git add librustls/src/rustls.h
+        note="$note (rustls.h made again)"
+    fi
+    GIT_EDITOR=true git cherry-pick --continue >/dev/null
+    echo "  picked   $subject$note"
 done
 
 # the header that the carried sources give must be the one that is committed
