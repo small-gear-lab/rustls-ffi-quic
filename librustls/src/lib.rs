@@ -25,6 +25,7 @@ mod ffi;
 pub mod io;
 pub mod keylog;
 pub mod log;
+pub mod quic;
 mod panic;
 pub mod rslice;
 pub mod server;

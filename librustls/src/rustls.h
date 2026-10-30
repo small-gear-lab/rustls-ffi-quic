@@ -29,6 +29,37 @@
 
 
 /**
+ * The QUIC version a connection runs, which governs version-specific behaviour of TLS.
+ */
+#define RUSTLS_QUIC_VERSION_V1 1
+
+#define RUSTLS_QUIC_VERSION_V2 2
+
+#define RUSTLS_QUIC_VERSION_V1_DRAFT 29
+
+/**
+ * Which keys `rustls_quic_connection_write_hs` made available after the bytes it wrote.
+ */
+#define RUSTLS_QUIC_KEYS_NONE 0
+
+#define RUSTLS_QUIC_KEYS_HANDSHAKE 1
+
+#define RUSTLS_QUIC_KEYS_ONE_RTT 2
+
+/**
+ * Which traffic secret `rustls_quic_connection_secret` returns.
+ */
+#define RUSTLS_QUIC_SECRET_CLIENT_EARLY 0
+
+#define RUSTLS_QUIC_SECRET_CLIENT_HANDSHAKE 1
+
+#define RUSTLS_QUIC_SECRET_SERVER_HANDSHAKE 2
+
+#define RUSTLS_QUIC_SECRET_CLIENT_APPLICATION 3
+
+#define RUSTLS_QUIC_SECRET_SERVER_APPLICATION 4
+
+/**
  * Numeric error codes returned from rustls-ffi API functions.
  */
 enum rustls_result
@@ -357,6 +388,13 @@ typedef struct rustls_hpke rustls_hpke;
  * [`std::io::IoSlice`]: https://doc.rust-lang.org/std/io/struct.IoSlice.html
  */
 typedef struct rustls_iovec rustls_iovec;
+
+/**
+ * A QUIC client connection, the TLS side of it only.
+ *
+ * Under the hood, this object corresponds to a `rustls::quic::ClientConnection`.
+ */
+typedef struct rustls_quic_connection rustls_quic_connection;
 
 /**
  * A root certificate store.
@@ -2484,6 +2522,83 @@ bool rustls_result_is_cert_error(unsigned int result);
  * The returned string has static lifetime and does not need to be freed.
  */
 struct rustls_str rustls_log_level_str(rustls_log_level level);
+
+/**
+ * Create a QUIC client connection. `params` is the TLS-encoded QUIC transport parameters
+ * to send. `alpn_protocols` overrides the ALPN of the config as
+ * `rustls_client_connection_new_alpn` does. The config must allow TLS 1.3.
+ */
+rustls_result rustls_quic_client_connection_new(const struct rustls_client_config *config,
+                                                uint32_t quic_version,
+                                                const char *server_name,
+                                                const struct rustls_slice_bytes *alpn_protocols,
+                                                size_t alpn_protocols_len,
+                                                const uint8_t *params,
+                                                size_t params_len,
+                                                struct rustls_quic_connection **conn_out);
+
+/**
+ * Give the connection the handshake bytes that arrived in CRYPTO frames, in order, at the
+ * encryption level they were received at.
+ */
+rustls_result rustls_quic_connection_read_hs(struct rustls_quic_connection *conn,
+                                             const uint8_t *data,
+                                             size_t len);
+
+/**
+ * Take the handshake bytes to send, at the current encryption level. After them, the
+ * connection may have new keys: `*keys_out` says which.
+ *
+ * Writes at most `cap` bytes to `out` and the count to `*len_out`. If there is more, call
+ * again with `*keys_out` still NONE; the keys are reported by the call that writes the
+ * last bytes of the level.
+ */
+rustls_result rustls_quic_connection_write_hs(struct rustls_quic_connection *conn,
+                                              uint8_t *out,
+                                              size_t cap,
+                                              size_t *len_out,
+                                              uint32_t *keys_out);
+
+/**
+ * Whether the handshake is still going on.
+ */
+bool rustls_quic_connection_is_handshaking(const struct rustls_quic_connection *conn);
+
+/**
+ * The TLS alert to send when the handshake failed. Returns false when there is none.
+ */
+bool rustls_quic_connection_alert(const struct rustls_quic_connection *conn, uint8_t *alert_out);
+
+/**
+ * Copy a traffic secret (`RUSTLS_QUIC_SECRET_*`) to `out`, at most `cap` bytes, and its length
+ * to `*len_out`. Returns false while the secret does not exist yet. Each secret exists from the
+ * moment the handshake bytes that give it have been read (`read_hs`), which is before
+ * `write_hs` reports the keys.
+ */
+bool rustls_quic_connection_secret(const struct rustls_quic_connection *conn,
+                                   uint32_t kind,
+                                   uint8_t *out,
+                                   size_t cap,
+                                   size_t *len_out);
+
+/**
+ * The IANA number of the negotiated TLS 1.3 cipher suite (0x1301, 0x1302 or 0x1303), or 0
+ * while none is negotiated yet.
+ */
+uint16_t rustls_quic_connection_cipher_suite(const struct rustls_quic_connection *conn);
+
+/**
+ * The QUIC transport parameters of the peer, once they have arrived. The pointer is valid
+ * until the connection is changed or freed.
+ */
+bool rustls_quic_connection_peer_transport_parameters(const struct rustls_quic_connection *conn,
+                                                      const uint8_t **out,
+                                                      size_t *len_out);
+
+/**
+ * Free a `rustls_quic_connection`. Calling with NULL is fine.
+ */
+void rustls_quic_connection_free(struct rustls_quic_connection *conn);
 
 /**
  * Return the length of the outer slice. If the input pointer is NULL,
