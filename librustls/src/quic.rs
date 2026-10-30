@@ -8,15 +8,15 @@ use std::ffi::c_char;
 use std::sync::{Arc, Mutex};
 
 use libc::size_t;
-use rustls::{ClientConfig, KeyLog};
 use rustls::pki_types::ServerName;
 use rustls::quic::{ClientConnection, KeyChange, Version};
+use rustls::{ClientConfig, KeyLog};
 
 use crate::client::rustls_client_config;
 use crate::error::{map_error, rustls_result};
 use crate::ffi::{
-    Castable, OwnershipBox, free_box, set_boxed_mut_ptr, try_clone_arc, try_cstr,
-    try_mut_from_ptr, try_mut_from_ptr_ptr, try_slice, try_slice_mut,
+    Castable, OwnershipBox, free_box, set_boxed_mut_ptr, try_clone_arc, try_cstr, try_mut_from_ptr,
+    try_mut_from_ptr_ptr, try_slice, try_slice_mut,
 };
 use crate::panic::ffi_panic_boundary;
 use crate::rslice::rustls_slice_bytes;
@@ -387,9 +387,12 @@ mod tests {
             .with_single_cert(certs, key)
             .unwrap();
         server_config.alpn_protocols = vec![b"h3".to_vec()];
-        let mut server =
-            ServerConnection::new(Arc::new(server_config), Version::V1, b"server-params".to_vec())
-                .unwrap();
+        let mut server = ServerConnection::new(
+            Arc::new(server_config),
+            Version::V1,
+            b"server-params".to_vec(),
+        )
+        .unwrap();
 
         let name = CString::new("localhost").unwrap();
         let alpn_bytes = b"h3";
@@ -415,10 +418,16 @@ mod tests {
                 let mut out = vec![0u8; 16384];
                 let (mut n, mut keys) = (0usize, 0u32);
                 let r = rustls_quic_connection::rustls_quic_connection_write_hs(
-                    conn, out.as_mut_ptr(), out.len(), &mut n, &mut keys,
+                    conn,
+                    out.as_mut_ptr(),
+                    out.len(),
+                    &mut n,
+                    &mut keys,
                 );
                 assert_eq!(r, rustls_result::Ok);
-                log(format!("round {round}: client write_hs -> {n} bytes, keys {keys}"));
+                log(format!(
+                    "round {round}: client write_hs -> {n} bytes, keys {keys}"
+                ));
                 if n > 0 {
                     server.read_hs(&out[..n]).unwrap();
                 }
@@ -433,12 +442,21 @@ mod tests {
                 if buf.is_empty() && kc.is_none() {
                     break;
                 }
-                log(format!("round {round}: server write_hs -> {} bytes, keychange {}", buf.len(), kc.is_some()));
+                log(format!(
+                    "round {round}: server write_hs -> {} bytes, keychange {}",
+                    buf.len(),
+                    kc.is_some()
+                ));
                 if !buf.is_empty() {
                     let r = rustls_quic_connection::rustls_quic_connection_read_hs(
-                        conn, buf.as_ptr(), buf.len(),
+                        conn,
+                        buf.as_ptr(),
+                        buf.len(),
                     );
-                    log(format!("round {round}: client read_hs({} bytes) -> {r:?}", buf.len()));
+                    log(format!(
+                        "round {round}: client read_hs({} bytes) -> {r:?}",
+                        buf.len()
+                    ));
                     assert_eq!(r, rustls_result::Ok);
                 }
             }
@@ -455,17 +473,38 @@ mod tests {
         }
         assert!(done, "the client handshake did not finish");
         let (mut p, mut l) = (null(), 0usize);
-        assert!(rustls_quic_connection::rustls_quic_connection_peer_transport_parameters(conn, &mut p, &mut l));
-        assert_eq!(unsafe { std::slice::from_raw_parts(p, l) }, b"server-params");
+        assert!(
+            rustls_quic_connection::rustls_quic_connection_peer_transport_parameters(
+                conn, &mut p, &mut l
+            )
+        );
+        assert_eq!(
+            unsafe { std::slice::from_raw_parts(p, l) },
+            b"server-params"
+        );
         for kind in 1..=4 {
             let (mut s, mut n) = ([0u8; 64], 0usize);
-            assert!(rustls_quic_connection::rustls_quic_connection_secret(conn, kind, s.as_mut_ptr(), 64, &mut n));
+            assert!(rustls_quic_connection::rustls_quic_connection_secret(
+                conn,
+                kind,
+                s.as_mut_ptr(),
+                64,
+                &mut n
+            ));
             assert_eq!(n, 48);
         }
         let (mut c, mut cl) = (null(), 0usize);
-        assert!(rustls_quic_connection::rustls_quic_connection_peer_certificate(conn, 0, &mut c, &mut cl));
+        assert!(
+            rustls_quic_connection::rustls_quic_connection_peer_certificate(
+                conn, 0, &mut c, &mut cl
+            )
+        );
         assert_eq!(unsafe { std::slice::from_raw_parts(c, cl) }, &leaf_der[..]);
-        assert!(!rustls_quic_connection::rustls_quic_connection_peer_certificate(conn, 99, &mut c, &mut cl));
+        assert!(
+            !rustls_quic_connection::rustls_quic_connection_peer_certificate(
+                conn, 99, &mut c, &mut cl
+            )
+        );
         let suite = rustls_quic_connection::rustls_quic_connection_cipher_suite(conn);
         println!("cipher suite 0x{suite:04x}");
         assert!((0x1301..=0x1303).contains(&suite));

@@ -14,6 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: main - rustfmt (upstream's CI checks it; renamed has longer names and is not formatted again)
+        if: github.ref_name != 'renamed'
+        run: cargo fmt --check
       - name: Tests (aws-lc-rs, which Encrypted Client Hello and the QUIC test need)
         run: cargo test --locked --features aws-lc-rs
       - name: The header is what cbindgen makes of the sources
