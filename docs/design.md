@@ -175,7 +175,11 @@ Done:
 3. curl: the `USE_RUSTLS` branch of `vquic-tls.c` and `cf-ngtcp2*.c`, and the build system. `curl --http3-only` works,
    so does `--ech true` over HTTP/3 (`sni=encrypted`).
 4. Packages: `librustls-quic`, `libngtcp2-crypto-rustls`, and a Rustls flavour of curl.
-5. `--capath` and `--pinnedpubkey` in curl's Rustls backend, as curl patches (`rustls_certificate_get_der` and
+5. **Retry and key update**, against the HTTP/3 server of `downstream/tests/aioquic-server.py`: a Retry that the server
+   sends to the first Initial (curl answers it and downloads 2 MiB), and five key updates by the server during a
+   download of 6 MiB (the body is the one the server made). Both are done by ngtcp2 with the primitives of the
+   helper (the integrity tag of the Retry, `quic ku` of the key update); Rustls is not in them.
+6. `--capath` and `--pinnedpubkey` in curl's Rustls backend, as curl patches (`rustls_certificate_get_der` and
    `add_pem` of rustls-ffi); for pinning over HTTP/3 this library returns the certificates of the server
    (`rustls_quic_connection_peer_certificate`) and the ngtcp2 helper hands them to curl.
 
@@ -183,10 +187,9 @@ Not done yet:
 
 - **Session resumption and 0-RTT**: every connection does the full handshake. What is possible is limited, see
   "Session resumption and 0-RTT" below.
-- **Retry** and **key update** are not exercised: a transfer of about 1 MB is the longest one tried.
 - **Server side**: client connections only.
-- **NTLM**: needs DES from a TLS library. Options are a curl patch with an internal DES, NTLMv2 only, or
-  `gss-ntlmssp`.
+- **NTLM**: not wanted here (it is the Windows login). It needs DES from a TLS library; if it is ever needed, the
+  options are a curl patch with an internal DES, NTLMv2 only, or `gss-ntlmssp`.
 - Sending the QUIC API upstream (see "Following upstream"), and the ngtcp2 helper to ngtcp2.
 
 ## Session resumption and 0-RTT
