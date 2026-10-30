@@ -181,13 +181,42 @@ Done:
 
 Not done yet:
 
-- **0-RTT and session resumption**: every connection does the full handshake; the early data keys of `rustls::quic`
-  are not exposed.
+- **Session resumption and 0-RTT**: every connection does the full handshake. What is possible is limited, see
+  "Session resumption and 0-RTT" below.
 - **Retry** and **key update** are not exercised: a transfer of about 1 MB is the longest one tried.
 - **Server side**: client connections only.
 - **NTLM**: needs DES from a TLS library. Options are a curl patch with an internal DES, NTLMv2 only, or
   `gss-ntlmssp`.
 - Sending the QUIC API upstream (see "Following upstream"), and the ngtcp2 helper to ngtcp2.
+
+## Session resumption and 0-RTT
+
+What was found in the code of rustls 0.23.46, curl 8.23.0 and ngtcp2 1.16.0 (checked, not tried out):
+
+- **A client ticket cannot leave the process.** `rustls::client::ClientSessionStore` is public, but the value it
+  stores, `Tls13ClientSessionValue`, has no encoding: its `Codec` is crate-private and its secret has no accessor (the
+  only value that `rustls::internal` exports in `persist` is the *server's*). Its public parts are `suite()`,
+  `max_early_data_size()` and `quic_params()` (the transport parameters of the server, which rustls keeps in the
+  ticket for QUIC). The resumption secret cannot be rebuilt from the traffic secrets either: it comes from the master
+  secret, which the key log does not show. So resumption between two runs of curl (`--ssl-sessions`, the export of
+  curl's session cache) is not possible without changing rustls; **only resumption inside one process is**.
+- **Resumption inside a process** would work like this: a store per connection (`Resumption::store`) catches the
+  tickets (`insert_tls13_ticket`) and a handle to the ticket is given to curl, which keeps it in its session cache
+  (`Curl_ssl_session` has an `sobj`, an object that is not bytes) under the key that includes the verification
+  settings, so a session made with `-k` cannot be resumed by a connection that verifies. The same API serves TCP and
+  QUIC. It saves the certificate chain and its verification: a few milliseconds and some kilobytes, and no round
+  trip. For the curl command line it is nothing (one process, one connection per host, and connections are reused);
+  for a program that opens several connections to a host in one process it is something small.
+- **0-RTT** (QUIC only) saves a round trip, and needs resumption first. Besides it: `enable_early_data` on the
+  config; from the ticket, the suite (which the early secret needs: 32 bytes are AES-128 or ChaCha20, 48 are AES-256),
+  `quic_params()` for `ngtcp2_conn_decode_and_set_0rtt_transport_params`, and the answer of
+  `is_early_data_accepted()`; in the helper the early secret (the key log has `CLIENT_EARLY_TRAFFIC_SECRET`, and the
+  API has its slot already) installed at the 0-RTT level, and `ngtcp2_conn_tls_early_data_rejected` when it is
+  refused; in curl the Rustls branch in about eight of the 34 places of `cf-ngtcp2-cmn.c` that deal with early data,
+  and the call of the session reuse callback with a session made of the ticket. It is tested against a server that
+  accepts early data (cloudflare.com and www.google.com do) with `--tls-earlydata --forbid-reuse URL URL`.
+  The command line has the same limit as above: the second connection must be in the same process. And early data can
+  be replayed: it is for requests that may be repeated, which is why curl asks for `--tls-earlydata`.
 
 ## Licensing
 
