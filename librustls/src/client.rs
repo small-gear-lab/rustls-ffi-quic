@@ -29,12 +29,12 @@ use crate::verifier::rustls_server_cert_verifier;
 
 /// A client config being constructed.
 ///
-/// A builder can be modified by, e.g. `rustls_client_config_builder_set_server_verifier`.
-/// Once you're done configuring settings, call `rustls_client_config_builder_build`
+/// A builder can be modified by, e.g. `rustlsq_client_config_builder_set_server_verifier`.
+/// Once you're done configuring settings, call `rustlsq_client_config_builder_build`
 /// to turn it into a `rustls_client_config`.
 ///
 /// Alternatively, if an error occurs or, you don't wish to build a config,
-/// call `rustls_client_config_builder_free` to free the builder directly.
+/// call `rustlsq_client_config_builder_free` to free the builder directly.
 ///
 /// This object is not safe for concurrent mutation. Under the hood,
 /// it corresponds to a `Box<ClientConfig>`.
@@ -70,7 +70,7 @@ impl Default for ClientConfigBuilder {
             provider: None,
             // Note: we populate default versions at build-time with the Rustls defaults.
             // We leave it empty for the default builder to be able to distinguish when
-            // a caller has customized w/ `rustls_client_config_builder_new_custom`.
+            // a caller has customized w/ `rustlsq_client_config_builder_new_custom`.
             versions: Vec::new(),
             verifier: None,
             alpn_protocols: Vec::new(),
@@ -105,20 +105,20 @@ impl Castable for rustls_client_config {
 impl rustls_client_config_builder {
     /// Create a `rustls_client_config_builder` using the process default crypto provider.
     ///
-    /// Caller owns the memory and must eventually call `rustls_client_config_builder_build`,
+    /// Caller owns the memory and must eventually call `rustlsq_client_config_builder_build`,
     /// then free the resulting `rustls_client_config`.
     ///
     /// Alternatively, if an error occurs or, you don't wish to build a config,
-    /// call `rustls_client_config_builder_free` to free the builder directly.
+    /// call `rustlsq_client_config_builder_free` to free the builder directly.
     ///
     /// This uses the process default provider's values for the cipher suites and key
     /// exchange groups, as well as safe defaults for protocol versions.
     ///
     /// This starts out with no trusted roots. The caller must provide a verifier with
-    /// `rustls_client_config_builder_set_server_verifier` or
-    /// `rustls_client_config_builder_dangerous_set_certificate_verifier`.
+    /// `rustlsq_client_config_builder_set_server_verifier` or
+    /// `rustlsq_client_config_builder_dangerous_set_certificate_verifier`.
     #[no_mangle]
-    pub extern "C" fn rustls_client_config_builder_new() -> *mut rustls_client_config_builder {
+    pub extern "C" fn rustlsq_client_config_builder_new() -> *mut rustls_client_config_builder {
         ffi_panic_boundary! {
             let builder = ClientConfigBuilder {
                 provider: crypto_provider::get_default_or_install_from_crate_features(),
@@ -130,11 +130,11 @@ impl rustls_client_config_builder {
 
     /// Create a `rustls_client_config_builder` using the specified crypto provider.
     ///
-    /// Caller owns the memory and must eventually call `rustls_client_config_builder_build`,
+    /// Caller owns the memory and must eventually call `rustlsq_client_config_builder_build`,
     /// then free the resulting `rustls_client_config`.
     ///
     /// Alternatively, if an error occurs or, you don't wish to build a config,
-    /// call `rustls_client_config_builder_free` to free the builder directly.
+    /// call `rustlsq_client_config_builder_free` to free the builder directly.
     ///
     /// `tls_versions` sets the TLS protocol versions to use when negotiating a
     /// TLS session. Each value is a protocol version as defined in RFC 8446,
@@ -147,16 +147,16 @@ impl rustls_client_config_builder {
     /// pointed to by `tls_versions`.
     ///
     /// On `RUSTLS_RESULT_OK`, `builder_out` receives a builder owned by the caller.
-    /// It must eventually be passed to `rustls_client_config_builder_build` or freed with
-    /// `rustls_client_config_builder_free`. On error, `builder_out` is unchanged.
+    /// It must eventually be passed to `rustlsq_client_config_builder_build` or freed with
+    /// `rustlsq_client_config_builder_free`. On error, `builder_out` is unchanged.
     ///
     /// The function borrows `provider` for the duration of the call and retains its own
     /// reference afterward.
     ///
     /// Ciphersuites are configured separately via the crypto provider. See
-    /// `rustls_crypto_provider_builder_set_cipher_suites` for more information.
+    /// `rustlsq_crypto_provider_builder_set_cipher_suites` for more information.
     #[no_mangle]
-    pub extern "C" fn rustls_client_config_builder_new_custom(
+    pub extern "C" fn rustlsq_client_config_builder_new_custom(
         provider: *const rustls_crypto_provider,
         tls_versions: *const u16,
         tls_versions_len: size_t,
@@ -194,7 +194,7 @@ impl rustls_client_config_builder {
     ///
     /// The callback must not capture any of the pointers in its
     /// `rustls_verify_server_cert_params`.
-    /// If `userdata` has been set with `rustls_connection_set_userdata`, it
+    /// If `userdata` has been set with `rustlsq_connection_set_userdata`, it
     /// will be passed to the callback. Otherwise the userdata param passed to
     /// the callback will be NULL.
     ///
@@ -217,7 +217,7 @@ impl rustls_client_config_builder {
     ///
     /// [`DangerousClientConfig::set_certificate_verifier`]: https://docs.rs/rustls/latest/rustls/client/struct.DangerousClientConfig.html#method.set_certificate_verifier
     #[no_mangle]
-    pub extern "C" fn rustls_client_config_builder_dangerous_set_certificate_verifier(
+    pub extern "C" fn rustlsq_client_config_builder_dangerous_set_certificate_verifier(
         config_builder: *mut rustls_client_config_builder,
         callback: rustls_verify_server_cert_callback,
     ) -> rustls_result {
@@ -244,23 +244,23 @@ impl rustls_client_config_builder {
     /// certificates:
     ///
     /// 1. Create a `rustls_root_cert_store_builder` with
-    ///    `rustls_root_cert_store_builder_new`.
-    /// 2. Add roots with `rustls_root_cert_store_builder_add_pem` or
-    ///    `rustls_root_cert_store_builder_load_roots_from_file`, then call
-    ///    `rustls_root_cert_store_builder_build`.
+    ///    `rustlsq_root_cert_store_builder_new`.
+    /// 2. Add roots with `rustlsq_root_cert_store_builder_add_pem` or
+    ///    `rustlsq_root_cert_store_builder_load_roots_from_file`, then call
+    ///    `rustlsq_root_cert_store_builder_build`.
     /// 3. Pass the resulting store to
-    ///    `rustls_web_pki_server_cert_verifier_builder_new`, then call
-    ///    `rustls_web_pki_server_cert_verifier_builder_build`.
+    ///    `rustlsq_web_pki_server_cert_verifier_builder_new`, then call
+    ///    `rustlsq_web_pki_server_cert_verifier_builder_build`.
     /// 4. Pass the resulting verifier to this function.
     ///
-    /// Alternatively, `rustls_platform_server_cert_verifier` creates a verifier
+    /// Alternatively, `rustlsq_platform_server_cert_verifier` creates a verifier
     /// using the platform's certificate facilities and trust store.
     ///
     /// This function increases the reference count of `verifier` and does not
     /// take ownership. The caller must still free its verifier pointer with
-    /// `rustls_server_cert_verifier_free` when it is no longer needed.
+    /// `rustlsq_server_cert_verifier_free` when it is no longer needed.
     #[no_mangle]
-    pub extern "C" fn rustls_client_config_builder_set_server_verifier(
+    pub extern "C" fn rustlsq_client_config_builder_set_server_verifier(
         builder: *mut rustls_client_config_builder,
         verifier: *const rustls_server_cert_verifier,
     ) {
@@ -288,7 +288,7 @@ impl rustls_client_config_builder {
     /// [IANA registry]: https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml#alpn-protocol-ids
     /// [`ClientConfig::alpn_protocols`]: https://docs.rs/rustls/latest/rustls/client/struct.ClientConfig.html#structfield.alpn_protocols
     #[no_mangle]
-    pub extern "C" fn rustls_client_config_builder_set_alpn_protocols(
+    pub extern "C" fn rustlsq_client_config_builder_set_alpn_protocols(
         builder: *mut rustls_client_config_builder,
         protocols: *const rustls_slice_bytes,
         len: size_t,
@@ -315,7 +315,7 @@ impl rustls_client_config_builder {
     ///
     /// [`ClientConfig::check_selected_alpn`]: https://docs.rs/rustls/latest/rustls/struct.ClientConfig.html#structfield.check_selected_alpn
     #[no_mangle]
-    pub extern "C" fn rustls_client_config_builder_set_check_selected_alpn(
+    pub extern "C" fn rustlsq_client_config_builder_set_check_selected_alpn(
         config: *mut rustls_client_config_builder,
         enable: bool,
     ) {
@@ -340,7 +340,7 @@ impl rustls_client_config_builder {
     ///
     /// [`ClientConfig::send_ticket_request`]: https://docs.rs/rustls/latest/rustls/struct.ClientConfig.html#structfield.send_ticket_request
     #[no_mangle]
-    pub extern "C" fn rustls_client_config_builder_set_send_ticket_request(
+    pub extern "C" fn rustlsq_client_config_builder_set_send_ticket_request(
         builder: *mut rustls_client_config_builder,
         new_session_count: u8,
         resumption_count: u8,
@@ -361,7 +361,7 @@ impl rustls_client_config_builder {
     ///
     /// [`ClientConfig::enable_sni`]: https://docs.rs/rustls/latest/rustls/struct.ClientConfig.html#structfield.enable_sni
     #[no_mangle]
-    pub extern "C" fn rustls_client_config_builder_set_enable_sni(
+    pub extern "C" fn rustlsq_client_config_builder_set_enable_sni(
         config: *mut rustls_client_config_builder,
         enable: bool,
     ) {
@@ -379,14 +379,14 @@ impl rustls_client_config_builder {
     /// ECSDA to go first in the list.
     ///
     /// The built configuration will keep a reference to all certified keys
-    /// provided. The client may `rustls_certified_key_free()` afterwards
+    /// provided. The client may `rustlsq_certified_key_free()` afterwards
     /// without the configuration losing them. The same certified key may also
     /// be used in multiple configs.
     ///
     /// EXPERIMENTAL: installing a client authentication callback will replace any
     /// configured certified keys and vice versa.
     #[no_mangle]
-    pub extern "C" fn rustls_client_config_builder_set_certified_key(
+    pub extern "C" fn rustlsq_client_config_builder_set_certified_key(
         builder: *mut rustls_client_config_builder,
         certified_keys: *const *const rustls_certified_key,
         certified_keys_len: size_t,
@@ -413,11 +413,11 @@ impl rustls_client_config_builder {
     /// of past, present and future sessions.
     ///
     /// For more control over which secrets are logged, or to customize the format, prefer
-    /// `rustls_client_config_builder_set_key_log`.
+    /// `rustlsq_client_config_builder_set_key_log`.
     ///
     /// [NSS key log format]: https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format
     #[no_mangle]
-    pub extern "C" fn rustls_client_config_builder_set_key_log_file(
+    pub extern "C" fn rustlsq_client_config_builder_set_key_log_file(
         builder: *mut rustls_client_config_builder,
     ) -> rustls_result {
         ffi_panic_boundary! {
@@ -445,12 +445,12 @@ impl rustls_client_config_builder {
     /// Secrets provided to the `log_cb` are **extremely sensitive** and can break the security
     /// of past, present and future sessions.
     ///
-    /// See also `rustls_client_config_builder_set_key_log_file` for a simpler way to log
+    /// See also `rustlsq_client_config_builder_set_key_log_file` for a simpler way to log
     /// to a file specified by the `SSLKEYLOGFILE` environment variable.
     ///
     /// [`KeyLog::log`]: https://docs.rs/rustls/latest/rustls/trait.KeyLog.html#tymethod.log
     #[no_mangle]
-    pub extern "C" fn rustls_client_config_builder_set_key_log(
+    pub extern "C" fn rustlsq_client_config_builder_set_key_log(
         builder: *mut rustls_client_config_builder,
         log_cb: rustls_keylog_log_callback,
         will_log_cb: rustls_keylog_will_log_callback,
@@ -479,11 +479,11 @@ impl rustls_client_config_builder {
     /// connecting to ahead of the TLS handshake.
     ///
     /// At least one of the ECH configurations must be compatible with the provided `rustls_hpke`
-    /// instance. See `rustls_supported_hpke()` for more information.
+    /// instance. See `rustlsq_supported_hpke()` for more information.
     ///
     /// Calling this function will replace any existing ECH configuration set by
-    /// previous calls to `rustls_client_config_builder_enable_ech()` or
-    /// `rustls_client_config_builder_enable_ech_grease()`.
+    /// previous calls to `rustlsq_client_config_builder_enable_ech()` or
+    /// `rustlsq_client_config_builder_enable_ech_grease()`.
     ///
     /// The provided `ech_config_list_bytes` and `rustls_hpke` must not be NULL or an
     /// error will be returned. The caller maintains ownership of the ECH config list TLS bytes
@@ -491,10 +491,10 @@ impl rustls_client_config_builder {
     /// `ech_config_list_bytes`.
     ///
     /// A `RUSTLS_RESULT_BUILDER_INCOMPATIBLE_TLS_VERSIONS` error is returned if the builder's
-    /// TLS versions have been customized via `rustls_client_config_builder_new_custom()`
+    /// TLS versions have been customized via `rustlsq_client_config_builder_new_custom()`
     /// and the customization isn't "only TLS 1.3". ECH may only be used with TLS 1.3.
     #[no_mangle]
-    pub extern "C" fn rustls_client_config_builder_enable_ech(
+    pub extern "C" fn rustlsq_client_config_builder_enable_ech(
         builder: *mut rustls_client_config_builder,
         ech_config_list_bytes: *const u8,
         ech_config_list_bytes_size: size_t,
@@ -540,14 +540,14 @@ impl rustls_client_config_builder {
     /// `rustls_client_config_builder` and the `rustls_hpke` instance.
     ///
     /// Calling this function will replace any existing ECH configuration set by
-    /// previous calls to `rustls_client_config_builder_enable_ech()` or
-    /// `rustls_client_config_builder_enable_ech_grease()`.
+    /// previous calls to `rustlsq_client_config_builder_enable_ech()` or
+    /// `rustlsq_client_config_builder_enable_ech_grease()`.
     ///
     /// A `RUSTLS_RESULT_BUILDER_INCOMPATIBLE_TLS_VERSIONS` error is returned if the builder's
-    /// TLS versions have been customized via `rustls_client_config_builder_new_custom()`
+    /// TLS versions have been customized via `rustlsq_client_config_builder_new_custom()`
     /// and the customization isn't "only TLS 1.3". ECH may only be used with TLS 1.3.
     #[no_mangle]
-    pub extern "C" fn rustls_client_config_builder_enable_ech_grease(
+    pub extern "C" fn rustlsq_client_config_builder_enable_ech_grease(
         builder: *mut rustls_client_config_builder,
         hpke: *const rustls_hpke,
     ) -> rustls_result {
@@ -582,9 +582,9 @@ impl rustls_client_config_builder {
     /// after calling this function, regardless of the result.
     ///
     /// On `RUSTLS_RESULT_OK`, `config_out` receives a config owned by the caller, which must
-    /// eventually be freed with `rustls_client_config_free`. On error, `config_out` is unchanged.
+    /// eventually be freed with `rustlsq_client_config_free`. On error, `config_out` is unchanged.
     #[no_mangle]
-    pub extern "C" fn rustls_client_config_builder_build(
+    pub extern "C" fn rustlsq_client_config_builder_build(
         builder: *mut rustls_client_config_builder,
         config_out: *mut *const rustls_client_config,
     ) -> rustls_result {
@@ -651,10 +651,10 @@ impl rustls_client_config_builder {
     /// Free a `rustls_client_config_builder` without building it into a
     /// `rustls_client_config`.
     ///
-    /// Do not call this after `rustls_client_config_builder_build`, which consumes and frees the
+    /// Do not call this after `rustlsq_client_config_builder_build`, which consumes and frees the
     /// builder. Calling with NULL is fine. Must not be called twice with the same value.
     #[no_mangle]
-    pub extern "C" fn rustls_client_config_builder_free(config: *mut rustls_client_config_builder) {
+    pub extern "C" fn rustlsq_client_config_builder_free(config: *mut rustls_client_config_builder) {
         ffi_panic_boundary! {
             free_box(config);
         }
@@ -663,7 +663,7 @@ impl rustls_client_config_builder {
 
 /// Input to a custom certificate verifier callback.
 ///
-/// See `rustls_client_config_builder_dangerous_set_certificate_verifier()`.
+/// See `rustlsq_client_config_builder_dangerous_set_certificate_verifier()`.
 ///
 /// server_name can contain a hostname, an IPv4 address in textual form, or an
 /// IPv6 address in textual form.
@@ -677,16 +677,16 @@ pub struct rustls_verify_server_cert_params<'a> {
 
 /// User-provided input to a custom certificate verifier callback.
 ///
-/// See `rustls_client_config_builder_dangerous_set_certificate_verifier()`.
+/// See `rustlsq_client_config_builder_dangerous_set_certificate_verifier()`.
 #[expect(non_camel_case_types)]
 pub type rustls_verify_server_cert_user_data = *mut libc::c_void;
 
 /// A callback that is invoked to verify a server certificate.
 ///
-/// `userdata` is the value set with `rustls_connection_set_userdata`. `params` and all data
+/// `userdata` is the value set with `rustlsq_connection_set_userdata`. `params` and all data
 /// referenced by its fields are borrowed and valid only for the duration of the callback.
 ///
-/// See `rustls_client_config_builder_dangerous_set_certificate_verifier` for return values and
+/// See `rustlsq_client_config_builder_dangerous_set_certificate_verifier` for return values and
 /// thread-safety requirements.
 // According to the nomicon https://doc.rust-lang.org/nomicon/ffi.html#the-nullable-pointer-optimization):
 // > Option<extern "C" fn(c_int) -> c_int> is a correct way to represent a
@@ -719,7 +719,7 @@ unsafe impl Send for Verifier {}
 
 /// Safety: Verifier is Sync if the C code that passes us a callback that
 /// obeys the concurrency safety requirements documented in
-/// `rustls_client_config_builder_dangerous_set_certificate_verifier`.
+/// `rustlsq_client_config_builder_dangerous_set_certificate_verifier`.
 unsafe impl Sync for Verifier {}
 
 impl ServerCertVerifier for Verifier {
@@ -829,18 +829,18 @@ impl rustls_client_config {
     /// Returns true if a `rustls_connection` created from the `rustls_client_config` will
     /// operate in FIPS mode.
     ///
-    /// This is different from `rustls_crypto_provider_fips` which is concerned
+    /// This is different from `rustlsq_crypto_provider_fips` which is concerned
     /// only with cryptography, whereas this also covers TLS-level configuration that NIST
     /// recommends, as well as ECH HPKE suites if applicable.
     #[no_mangle]
-    pub extern "C" fn rustls_client_config_fips(config: *const rustls_client_config) -> bool {
+    pub extern "C" fn rustlsq_client_config_fips(config: *const rustls_client_config) -> bool {
         ffi_panic_boundary! {
             try_ref_from_ptr!(config).fips()
         }
     }
 
     /// Release the caller's reference to a `rustls_client_config` previously returned from
-    /// `rustls_client_config_builder_build`.
+    /// `rustlsq_client_config_builder_build`.
     ///
     /// Existing client connections may still hold internal references to the atomically
     /// reference-counted Rust object. Regardless, the caller must not use `config` after this
@@ -848,7 +848,7 @@ impl rustls_client_config {
     ///
     /// Calling with NULL is fine. Must not be called twice with the same value.
     #[no_mangle]
-    pub extern "C" fn rustls_client_config_free(config: *const rustls_client_config) {
+    pub extern "C" fn rustlsq_client_config_free(config: *const rustls_client_config) {
         ffi_panic_boundary! {
             free_arc(config);
         }
@@ -858,7 +858,7 @@ impl rustls_client_config {
     ///
     /// If this returns `RUSTLS_RESULT_OK`, the memory pointed to by `conn_out` is modified to
     /// point at a valid `rustls_connection`. The caller now owns the `rustls_connection`
-    /// and must call `rustls_connection_free` when done with it.
+    /// and must call `rustlsq_connection_free` when done with it.
     ///
     /// This function copies the contents of `server_name`.
     ///
@@ -866,7 +866,7 @@ impl rustls_client_config {
     /// does not take ownership of the caller's config pointer.
     ///
     /// Uses the `rustls_client_config` to determine ALPN protocol support. Prefer
-    /// `rustls_client_connection_new_alpn` to customize this per-connection.
+    /// `rustlsq_client_connection_new_alpn` to customize this per-connection.
     ///
     /// If this returns an error code, the memory pointed to by `conn_out` remains
     /// unchanged.
@@ -875,7 +875,7 @@ impl rustls_client_config {
     /// textual form (IPv4 or IPv6). This function will return an error if it
     /// cannot be parsed as one of those types. It must be NUL-terminated.
     #[no_mangle]
-    pub extern "C" fn rustls_client_connection_new(
+    pub extern "C" fn rustlsq_client_connection_new(
         config: *const rustls_client_config,
         server_name: *const c_char,
         conn_out: *mut *mut rustls_connection,
@@ -892,13 +892,13 @@ impl rustls_client_config {
 
     /// Create a new client `rustls_connection` with custom ALPN protocols.
     ///
-    /// Operates the same as `rustls_client_connection_new`, but allows specifying
+    /// Operates the same as `rustlsq_client_connection_new`, but allows specifying
     /// custom per-connection ALPN protocols instead of inheriting ALPN protocols
     /// from the `rustls_client_config`.
     ///
     /// If this returns `RUSTLS_RESULT_OK`, the memory pointed to by `conn_out` is modified to
     /// point at a valid `rustls_connection`. The caller now owns the `rustls_connection`
-    /// and must call `rustls_connection_free` when done with it.
+    /// and must call `rustlsq_connection_free` when done with it.
     ///
     /// This function copies the contents of `server_name`.
     ///
@@ -922,7 +922,7 @@ impl rustls_client_config {
     ///
     /// [IANA registry]: https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml#alpn-protocol-ids
     #[no_mangle]
-    pub extern "C" fn rustls_client_connection_new_alpn(
+    pub extern "C" fn rustlsq_client_connection_new_alpn(
         config: *const rustls_client_config,
         server_name: *const c_char,
         alpn_protocols: *const rustls_slice_bytes,
@@ -984,30 +984,30 @@ mod tests {
     #[test]
     #[cfg_attr(miri, ignore)]
     fn test_config_builder() {
-        let builder = rustls_client_config_builder::rustls_client_config_builder_new();
+        let builder = rustls_client_config_builder::rustlsq_client_config_builder_new();
         let mut verifier = null_mut();
         let result =
-            rustls_server_cert_verifier::rustls_platform_server_cert_verifier(&mut verifier);
+            rustls_server_cert_verifier::rustlsq_platform_server_cert_verifier(&mut verifier);
         assert_eq!(result, rustls_result::Ok);
         assert!(!verifier.is_null());
-        rustls_client_config_builder::rustls_client_config_builder_set_server_verifier(
+        rustls_client_config_builder::rustlsq_client_config_builder_set_server_verifier(
             builder, verifier,
         );
         let h1 = "http/1.1".as_bytes();
         let h2 = "h2".as_bytes();
         let alpn = [h1.into(), h2.into()];
-        rustls_client_config_builder::rustls_client_config_builder_set_alpn_protocols(
+        rustls_client_config_builder::rustlsq_client_config_builder_set_alpn_protocols(
             builder,
             alpn.as_ptr(),
             alpn.len(),
         );
-        rustls_client_config_builder::rustls_client_config_builder_set_enable_sni(builder, false);
-        rustls_client_config_builder::rustls_client_config_builder_set_check_selected_alpn(
+        rustls_client_config_builder::rustlsq_client_config_builder_set_enable_sni(builder, false);
+        rustls_client_config_builder::rustlsq_client_config_builder_set_check_selected_alpn(
             builder, false,
         );
         let mut config = null();
         let result =
-            rustls_client_config_builder::rustls_client_config_builder_build(builder, &mut config);
+            rustls_client_config_builder::rustlsq_client_config_builder_build(builder, &mut config);
         assert_eq!(result, rustls_result::Ok);
         assert!(!config.is_null());
         {
@@ -1016,43 +1016,43 @@ mod tests {
             assert_eq!(config2.alpn_protocols, vec![h1, h2]);
             assert!(!config2.check_selected_alpn);
         }
-        rustls_client_config::rustls_client_config_free(config);
-        rustls_server_cert_verifier::rustls_server_cert_verifier_free(verifier);
+        rustls_client_config::rustlsq_client_config_free(config);
+        rustls_server_cert_verifier::rustlsq_server_cert_verifier_free(verifier);
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn test_config_builder_set_send_ticket_request() {
         // The default is to not send the ticket_request extension.
-        let builder = rustls_client_config_builder::rustls_client_config_builder_new();
+        let builder = rustls_client_config_builder::rustlsq_client_config_builder_new();
         let mut verifier = null_mut();
         let result =
-            rustls_server_cert_verifier::rustls_platform_server_cert_verifier(&mut verifier);
+            rustls_server_cert_verifier::rustlsq_platform_server_cert_verifier(&mut verifier);
         assert_eq!(result, rustls_result::Ok);
-        rustls_client_config_builder::rustls_client_config_builder_set_server_verifier(
+        rustls_client_config_builder::rustlsq_client_config_builder_set_server_verifier(
             builder, verifier,
         );
         let mut config = null();
         let result =
-            rustls_client_config_builder::rustls_client_config_builder_build(builder, &mut config);
+            rustls_client_config_builder::rustlsq_client_config_builder_build(builder, &mut config);
         assert_eq!(result, rustls_result::Ok);
         {
             let config2 = try_ref_from_ptr!(config);
             assert_eq!(config2.send_ticket_request, None);
         }
-        rustls_client_config::rustls_client_config_free(config);
+        rustls_client_config::rustlsq_client_config_free(config);
 
         // Configured counts flow through to the config.
-        let builder = rustls_client_config_builder::rustls_client_config_builder_new();
-        rustls_client_config_builder::rustls_client_config_builder_set_server_verifier(
+        let builder = rustls_client_config_builder::rustlsq_client_config_builder_new();
+        rustls_client_config_builder::rustlsq_client_config_builder_set_server_verifier(
             builder, verifier,
         );
-        rustls_client_config_builder::rustls_client_config_builder_set_send_ticket_request(
+        rustls_client_config_builder::rustlsq_client_config_builder_set_send_ticket_request(
             builder, 6, 3,
         );
         let mut config = null();
         let result =
-            rustls_client_config_builder::rustls_client_config_builder_build(builder, &mut config);
+            rustls_client_config_builder::rustlsq_client_config_builder_build(builder, &mut config);
         assert_eq!(result, rustls_result::Ok);
         {
             let config2 = try_ref_from_ptr!(config);
@@ -1064,8 +1064,8 @@ mod tests {
                 })
             );
         }
-        rustls_client_config::rustls_client_config_free(config);
-        rustls_server_cert_verifier::rustls_server_cert_verifier_free(verifier);
+        rustls_client_config::rustlsq_client_config_free(config);
+        rustls_server_cert_verifier::rustlsq_server_cert_verifier_free(verifier);
     }
 
     // Build a client connection and test the getters and initial values.
@@ -1075,7 +1075,7 @@ mod tests {
         let (config, verifier) = test_config();
 
         let mut conn = null_mut();
-        let result = rustls_client_config::rustls_client_connection_new(
+        let result = rustls_client_config::rustlsq_client_connection_new(
             config,
             c"example.com".as_ptr() as *const c_char,
             &mut conn,
@@ -1083,14 +1083,14 @@ mod tests {
         if !matches!(result, rustls_result::Ok) {
             panic!("expected RUSTLS_RESULT_OK, got {result:?}");
         }
-        assert!(!rustls_connection::rustls_connection_wants_read(conn));
-        assert!(rustls_connection::rustls_connection_wants_write(conn));
-        assert!(rustls_connection::rustls_connection_is_handshaking(conn));
+        assert!(!rustls_connection::rustlsq_connection_wants_read(conn));
+        assert!(rustls_connection::rustlsq_connection_wants_write(conn));
+        assert!(rustls_connection::rustlsq_connection_is_handshaking(conn));
 
         let some_byte = 42u8;
         let mut alpn_protocol: *const u8 = &some_byte;
         let mut alpn_protocol_len = 1;
-        rustls_connection::rustls_connection_get_alpn_protocol(
+        rustls_connection::rustlsq_connection_get_alpn_protocol(
             conn,
             &mut alpn_protocol,
             &mut alpn_protocol_len,
@@ -1099,22 +1099,22 @@ mod tests {
         assert_eq!(alpn_protocol_len, 0);
 
         assert_eq!(
-            rustls_connection::rustls_connection_get_negotiated_ciphersuite(conn),
+            rustls_connection::rustlsq_connection_get_negotiated_ciphersuite(conn),
             0
         );
-        let cs_name = rustls_connection::rustls_connection_get_negotiated_ciphersuite_name(conn);
+        let cs_name = rustls_connection::rustlsq_connection_get_negotiated_ciphersuite_name(conn);
         assert_eq!(unsafe { cs_name.to_str() }, "");
         assert_eq!(
-            rustls_connection::rustls_connection_get_peer_certificate(conn, 0),
+            rustls_connection::rustlsq_connection_get_peer_certificate(conn, 0),
             null()
         );
 
         assert_eq!(
-            rustls_connection::rustls_connection_get_protocol_version(conn),
+            rustls_connection::rustlsq_connection_get_protocol_version(conn),
             0
         );
-        rustls_connection::rustls_connection_free(conn);
-        rustls_server_cert_verifier::rustls_server_cert_verifier_free(verifier);
+        rustls_connection::rustlsq_connection_free(conn);
+        rustls_server_cert_verifier::rustlsq_server_cert_verifier_free(verifier);
     }
 
     // Build a client connection w/ custom ALPN and ensure no error occurs.
@@ -1128,7 +1128,7 @@ mod tests {
         ];
 
         let mut conn = null_mut();
-        let result = rustls_client_config::rustls_client_connection_new_alpn(
+        let result = rustls_client_config::rustlsq_client_connection_new_alpn(
             config,
             c"example.com".as_ptr() as *const c_char,
             alpn_protocols.as_ptr(),
@@ -1139,26 +1139,26 @@ mod tests {
             panic!("expected RUSTLS_RESULT_OK, got {result:?}");
         }
 
-        rustls_connection::rustls_connection_free(conn);
-        rustls_server_cert_verifier::rustls_server_cert_verifier_free(verifier);
+        rustls_connection::rustlsq_connection_free(conn);
+        rustls_server_cert_verifier::rustlsq_server_cert_verifier_free(verifier);
     }
 
     fn test_config() -> (
         *const rustls_client_config,
         *mut rustls_server_cert_verifier,
     ) {
-        let builder = rustls_client_config_builder::rustls_client_config_builder_new();
+        let builder = rustls_client_config_builder::rustlsq_client_config_builder_new();
         let mut verifier = null_mut();
         let result =
-            rustls_server_cert_verifier::rustls_platform_server_cert_verifier(&mut verifier);
+            rustls_server_cert_verifier::rustlsq_platform_server_cert_verifier(&mut verifier);
         assert_eq!(result, rustls_result::Ok);
         assert!(!verifier.is_null());
-        rustls_client_config_builder::rustls_client_config_builder_set_server_verifier(
+        rustls_client_config_builder::rustlsq_client_config_builder_set_server_verifier(
             builder, verifier,
         );
         let mut config = null();
         let result =
-            rustls_client_config_builder::rustls_client_config_builder_build(builder, &mut config);
+            rustls_client_config_builder::rustlsq_client_config_builder_build(builder, &mut config);
         assert_eq!(result, rustls_result::Ok);
         assert!(!config.is_null());
         (config, verifier)
@@ -1167,22 +1167,22 @@ mod tests {
     #[test]
     #[cfg_attr(miri, ignore)]
     fn test_client_connection_new_ipaddress() {
-        let builder = rustls_client_config_builder::rustls_client_config_builder_new();
+        let builder = rustls_client_config_builder::rustlsq_client_config_builder_new();
         let mut verifier = null_mut();
         let result =
-            rustls_server_cert_verifier::rustls_platform_server_cert_verifier(&mut verifier);
+            rustls_server_cert_verifier::rustlsq_platform_server_cert_verifier(&mut verifier);
         assert_eq!(result, rustls_result::Ok);
         assert!(!verifier.is_null());
-        rustls_client_config_builder::rustls_client_config_builder_set_server_verifier(
+        rustls_client_config_builder::rustlsq_client_config_builder_set_server_verifier(
             builder, verifier,
         );
         let mut config = null();
         let result =
-            rustls_client_config_builder::rustls_client_config_builder_build(builder, &mut config);
+            rustls_client_config_builder::rustlsq_client_config_builder_build(builder, &mut config);
         assert_eq!(result, rustls_result::Ok);
         assert!(!config.is_null());
         let mut conn = null_mut();
-        let result = rustls_client_config::rustls_client_connection_new(
+        let result = rustls_client_config::rustlsq_client_connection_new(
             config,
             c"198.51.100.198".as_ptr() as *const c_char,
             &mut conn,
@@ -1190,15 +1190,15 @@ mod tests {
         if !matches!(result, rustls_result::Ok) {
             panic!("expected RUSTLS_RESULT_OK, got {result:?}");
         }
-        rustls_server_cert_verifier::rustls_server_cert_verifier_free(verifier);
+        rustls_server_cert_verifier::rustlsq_server_cert_verifier_free(verifier);
     }
 
     #[test]
     fn test_client_builder_no_verifier_err() {
-        let builder = rustls_client_config_builder::rustls_client_config_builder_new();
+        let builder = rustls_client_config_builder::rustlsq_client_config_builder_new();
         let mut config = null();
         let result =
-            rustls_client_config_builder::rustls_client_config_builder_build(builder, &mut config);
+            rustls_client_config_builder::rustlsq_client_config_builder_build(builder, &mut config);
         assert_eq!(result, rustls_result::NoServerCertVerifier);
     }
 }

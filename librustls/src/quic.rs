@@ -28,12 +28,12 @@ pub const RUSTLS_QUIC_VERSION_V1: u32 = 1;
 pub const RUSTLS_QUIC_VERSION_V2: u32 = 2;
 pub const RUSTLS_QUIC_VERSION_V1_DRAFT: u32 = 0x1d;
 
-/// Which keys `rustls_quic_connection_write_hs` made available after the bytes it wrote.
+/// Which keys `rustlsq_quic_connection_write_hs` made available after the bytes it wrote.
 pub const RUSTLS_QUIC_KEYS_NONE: u32 = 0;
 pub const RUSTLS_QUIC_KEYS_HANDSHAKE: u32 = 1;
 pub const RUSTLS_QUIC_KEYS_ONE_RTT: u32 = 2;
 
-/// Which traffic secret `rustls_quic_connection_get_secret` returns.
+/// Which traffic secret `rustlsq_quic_connection_get_secret` returns.
 pub const RUSTLS_QUIC_SECRET_CLIENT_EARLY: u32 = 0;
 pub const RUSTLS_QUIC_SECRET_CLIENT_HANDSHAKE: u32 = 1;
 pub const RUSTLS_QUIC_SECRET_SERVER_HANDSHAKE: u32 = 2;
@@ -96,9 +96,9 @@ impl Castable for rustls_quic_connection {
 impl rustls_quic_connection {
     /// Create a QUIC client connection. `params` is the TLS-encoded QUIC transport parameters
     /// to send. `alpn_protocols` overrides the ALPN of the config as
-    /// `rustls_client_connection_new_alpn` does. The config must allow TLS 1.3.
+    /// `rustlsq_client_connection_new_alpn` does. The config must allow TLS 1.3.
     #[no_mangle]
-    pub extern "C" fn rustls_quic_client_connection_new(
+    pub extern "C" fn rustlsq_quic_client_connection_new(
         config: *const rustls_client_config,
         quic_version: u32,
         server_name: *const c_char,
@@ -153,7 +153,7 @@ impl rustls_quic_connection {
     /// Give the connection the handshake bytes that arrived in CRYPTO frames, in order, at the
     /// encryption level they were received at.
     #[no_mangle]
-    pub extern "C" fn rustls_quic_connection_read_hs(
+    pub extern "C" fn rustlsq_quic_connection_read_hs(
         conn: *mut rustls_quic_connection,
         data: *const u8,
         len: size_t,
@@ -172,10 +172,10 @@ impl rustls_quic_connection {
     ///
     /// Writes at most `cap` bytes to `out` and the count to `*len_out`. If there are more, they are
     /// kept: call again, and `*keys_out` stays `RUSTLS_QUIC_KEYS_NONE` until the call that writes the
-    /// last bytes of the level. Call this after every `rustls_quic_connection_read_hs`: the bytes of
+    /// last bytes of the level. Call this after every `rustlsq_quic_connection_read_hs`: the bytes of
     /// two levels would run together otherwise.
     #[no_mangle]
-    pub extern "C" fn rustls_quic_connection_write_hs(
+    pub extern "C" fn rustlsq_quic_connection_write_hs(
         conn: *mut rustls_quic_connection,
         out: *mut u8,
         cap: size_t,
@@ -214,7 +214,7 @@ impl rustls_quic_connection {
 
     /// Whether the handshake is still going on.
     #[no_mangle]
-    pub extern "C" fn rustls_quic_connection_is_handshaking(
+    pub extern "C" fn rustlsq_quic_connection_is_handshaking(
         conn: *const rustls_quic_connection,
     ) -> bool {
         ffi_panic_boundary! {
@@ -222,11 +222,11 @@ impl rustls_quic_connection {
         }
     }
 
-    /// Get the TLS alert to send when the handshake failed (check it after `rustls_quic_connection_read_hs`
+    /// Get the TLS alert to send when the handshake failed (check it after `rustlsq_quic_connection_read_hs`
     /// returned an error). Stores it in `alert_out` and returns `RUSTLS_RESULT_OK`, or returns
     /// `RUSTLS_RESULT_NOT_FOUND` when there is none.
     #[no_mangle]
-    pub extern "C" fn rustls_quic_connection_get_alert(
+    pub extern "C" fn rustlsq_quic_connection_get_alert(
         conn: *const rustls_quic_connection,
         alert_out: *mut u8,
     ) -> rustls_result {
@@ -251,9 +251,9 @@ impl rustls_quic_connection {
     /// Returns `RUSTLS_RESULT_NOT_FOUND` while the secret does not exist yet, `RUSTLS_RESULT_INVALID_PARAMETER`
     /// for an unknown `kind`, and `RUSTLS_RESULT_INSUFFICIENT_SIZE` if it does not fit (48 bytes are enough
     /// for every secret). Each secret exists from the moment the handshake bytes that give it have been read
-    /// (`rustls_quic_connection_read_hs`), which is before `rustls_quic_connection_write_hs` reports the keys.
+    /// (`rustlsq_quic_connection_read_hs`), which is before `rustlsq_quic_connection_write_hs` reports the keys.
     #[no_mangle]
-    pub extern "C" fn rustls_quic_connection_get_secret(
+    pub extern "C" fn rustlsq_quic_connection_get_secret(
         conn: *const rustls_quic_connection,
         kind: u32,
         out: *mut u8,
@@ -289,7 +289,7 @@ impl rustls_quic_connection {
     ///
     /// [IANA registered cipher suite identifier]: https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-4
     #[no_mangle]
-    pub extern "C" fn rustls_quic_connection_get_negotiated_ciphersuite(
+    pub extern "C" fn rustlsq_quic_connection_get_negotiated_ciphersuite(
         conn: *const rustls_quic_connection,
     ) -> u16 {
         ffi_panic_boundary! {
@@ -302,10 +302,10 @@ impl rustls_quic_connection {
     }
 
     /// Get the `i`-th certificate that the server sent (0 is the end-entity certificate), or NULL when there is
-    /// none: before the handshake has got that far, or `i` is past the last. Use `rustls_certificate_get_der` on
+    /// none: before the handshake has got that far, or `i` is past the last. Use `rustlsq_certificate_get_der` on
     /// it. The pointer is valid until the connection is changed or freed.
     #[no_mangle]
-    pub extern "C" fn rustls_quic_connection_get_peer_certificate<'a>(
+    pub extern "C" fn rustlsq_quic_connection_get_peer_certificate<'a>(
         conn: *const rustls_quic_connection,
         i: size_t,
     ) -> *const rustls_certificate<'a> {
@@ -327,7 +327,7 @@ impl rustls_quic_connection {
     ///
     /// If `conn` or either output parameter is NULL, both output values are unchanged.
     #[no_mangle]
-    pub extern "C" fn rustls_quic_connection_get_peer_transport_parameters(
+    pub extern "C" fn rustlsq_quic_connection_get_peer_transport_parameters(
         conn: *const rustls_quic_connection,
         params_out: *mut *const u8,
         params_out_len: *mut size_t,
@@ -354,7 +354,7 @@ impl rustls_quic_connection {
 
     /// Free a `rustls_quic_connection`. Calling with NULL is fine.
     #[no_mangle]
-    pub extern "C" fn rustls_quic_connection_free(conn: *mut rustls_quic_connection) {
+    pub extern "C" fn rustlsq_quic_connection_free(conn: *mut rustls_quic_connection) {
         ffi_panic_boundary! {
             free_box(conn);
         }
@@ -408,7 +408,7 @@ mod tests {
             let alpn_bytes = b"h3";
             let alpn = [rustls_slice_bytes::from(&alpn_bytes[..])];
             let mut conn: *mut rustls_quic_connection = null_mut();
-            let r = rustls_quic_connection::rustls_quic_client_connection_new(
+            let r = rustls_quic_connection::rustlsq_quic_client_connection_new(
                 config,
                 RUSTLS_QUIC_VERSION_V1,
                 name.as_ptr(),
@@ -423,7 +423,7 @@ mod tests {
             loop {
                 let mut out = vec![0u8; cap];
                 let (mut n, mut keys) = (0usize, 0u32);
-                let r = rustls_quic_connection::rustls_quic_connection_write_hs(
+                let r = rustls_quic_connection::rustlsq_quic_connection_write_hs(
                     conn,
                     out.as_mut_ptr(),
                     cap,
@@ -436,7 +436,7 @@ mod tests {
                     break;
                 }
             }
-            rustls_quic_connection::rustls_quic_connection_free(conn);
+            rustls_quic_connection::rustlsq_quic_connection_free(conn);
             all
         };
         let at_once = take(16384);
@@ -489,7 +489,7 @@ mod tests {
         let alpn_bytes = b"h3";
         let alpn = [rustls_slice_bytes::from(&alpn_bytes[..])];
         let mut conn: *mut rustls_quic_connection = null_mut();
-        let r = rustls_quic_connection::rustls_quic_client_connection_new(
+        let r = rustls_quic_connection::rustlsq_quic_client_connection_new(
             config,
             RUSTLS_QUIC_VERSION_V1,
             name.as_ptr(),
@@ -508,7 +508,7 @@ mod tests {
             loop {
                 let mut out = vec![0u8; 16384];
                 let (mut n, mut keys) = (0usize, 0u32);
-                let r = rustls_quic_connection::rustls_quic_connection_write_hs(
+                let r = rustls_quic_connection::rustlsq_quic_connection_write_hs(
                     conn,
                     out.as_mut_ptr(),
                     out.len(),
@@ -539,7 +539,7 @@ mod tests {
                     kc.is_some()
                 ));
                 if !buf.is_empty() {
-                    let r = rustls_quic_connection::rustls_quic_connection_read_hs(
+                    let r = rustls_quic_connection::rustlsq_quic_connection_read_hs(
                         conn,
                         buf.as_ptr(),
                         buf.len(),
@@ -555,7 +555,7 @@ mod tests {
             if done {
                 break;
             }
-            if !rustls_quic_connection::rustls_quic_connection_is_handshaking(conn) {
+            if !rustls_quic_connection::rustlsq_quic_connection_is_handshaking(conn) {
                 done = true;
             }
         }
@@ -564,7 +564,7 @@ mod tests {
         }
         assert!(done, "the client handshake did not finish");
         let (mut p, mut l) = (null(), 0usize);
-        rustls_quic_connection::rustls_quic_connection_get_peer_transport_parameters(
+        rustls_quic_connection::rustlsq_quic_connection_get_peer_transport_parameters(
             conn, &mut p, &mut l,
         );
         assert_eq!(
@@ -574,7 +574,7 @@ mod tests {
         for kind in 1..=4 {
             let (mut s, mut n) = ([0u8; 64], 0usize);
             assert_eq!(
-                rustls_quic_connection::rustls_quic_connection_get_secret(
+                rustls_quic_connection::rustlsq_quic_connection_get_secret(
                     conn,
                     kind,
                     s.as_mut_ptr(),
@@ -588,7 +588,7 @@ mod tests {
         // a buffer that is too small, and a kind that does not exist
         let (mut s, mut n) = ([0u8; 64], 0usize);
         assert_eq!(
-            rustls_quic_connection::rustls_quic_connection_get_secret(
+            rustls_quic_connection::rustlsq_quic_connection_get_secret(
                 conn,
                 1,
                 s.as_mut_ptr(),
@@ -598,7 +598,7 @@ mod tests {
             rustls_result::InsufficientSize
         );
         assert_eq!(
-            rustls_quic_connection::rustls_quic_connection_get_secret(
+            rustls_quic_connection::rustlsq_quic_connection_get_secret(
                 conn,
                 9,
                 s.as_mut_ptr(),
@@ -608,26 +608,26 @@ mod tests {
             rustls_result::InvalidParameter
         );
         // the certificate that the server sent, through the call that TLS connections have
-        let cert = rustls_quic_connection::rustls_quic_connection_get_peer_certificate(conn, 0);
+        let cert = rustls_quic_connection::rustlsq_quic_connection_get_peer_certificate(conn, 0);
         assert!(!cert.is_null());
         let (mut c, mut cl) = (null(), 0usize);
         assert_eq!(
-            crate::certificate::rustls_certificate_get_der(cert, &mut c, &mut cl),
+            crate::certificate::rustlsq_certificate_get_der(cert, &mut c, &mut cl),
             rustls_result::Ok
         );
         assert_eq!(unsafe { std::slice::from_raw_parts(c, cl) }, &leaf_der[..]);
         assert!(
-            rustls_quic_connection::rustls_quic_connection_get_peer_certificate(conn, 99).is_null()
+            rustls_quic_connection::rustlsq_quic_connection_get_peer_certificate(conn, 99).is_null()
         );
         // no alert: the handshake did not fail
         let mut alert = 0u8;
         assert_eq!(
-            rustls_quic_connection::rustls_quic_connection_get_alert(conn, &mut alert),
+            rustls_quic_connection::rustlsq_quic_connection_get_alert(conn, &mut alert),
             rustls_result::NotFound
         );
-        let suite = rustls_quic_connection::rustls_quic_connection_get_negotiated_ciphersuite(conn);
+        let suite = rustls_quic_connection::rustlsq_quic_connection_get_negotiated_ciphersuite(conn);
         println!("cipher suite 0x{suite:04x}");
         assert!((0x1301..=0x1303).contains(&suite));
-        rustls_quic_connection::rustls_quic_connection_free(conn);
+        rustls_quic_connection::rustlsq_quic_connection_free(conn);
     }
 }

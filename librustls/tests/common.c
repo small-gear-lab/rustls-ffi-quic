@@ -29,7 +29,7 @@ print_error(const char *prefix, const rustls_result rr)
 {
   char buf[256];
   size_t n;
-  rustls_error(rr, buf, sizeof(buf), &n);
+  rustlsq_error(rr, buf, sizeof(buf), &n);
   LOG("%s: %.*s", prefix, (int)n, buf);
 }
 
@@ -186,13 +186,13 @@ copy_plaintext_to_buffer(conndata *conn)
     char *buf = bytevec_writeable(&conn->data);
     const size_t avail = bytevec_available(&conn->data);
     const rustls_result rr =
-      rustls_connection_read(rconn, (uint8_t *)buf, avail, &n);
+      rustlsq_connection_read(rconn, (uint8_t *)buf, avail, &n);
     if(rr == RUSTLS_RESULT_PLAINTEXT_EMPTY) {
       /* This is expected. It just means "no more bytes for now." */
       return DEMO_OK;
     }
     if(rr != RUSTLS_RESULT_OK) {
-      print_error("error in rustls_connection_read", rr);
+      print_error("error in rustlsq_connection_read", rr);
       return DEMO_ERROR;
     }
     if(n == 0) {
@@ -255,7 +255,7 @@ void
 log_cb(void *userdata, const rustls_log_params *params)
 {
   const conndata *conn = (struct conndata *)userdata;
-  const rustls_str level_str = rustls_log_level_str(params->level);
+  const rustls_str level_str = rustlsq_log_level_str(params->level);
   LOG("[fd %d][%.*s]: %.*s",
       conn->fd,
       (int)level_str.len,
@@ -301,7 +301,7 @@ load_cert_and_key(const char *certfile, const char *keyfile)
   }
 
   const rustls_certified_key *certified_key;
-  rustls_result rr = rustls_certified_key_build((uint8_t *)certbuf,
+  rustls_result rr = rustlsq_certified_key_build((uint8_t *)certbuf,
                                                 certbuf_len,
                                                 (uint8_t *)keybuf,
                                                 keybuf_len,
@@ -311,13 +311,13 @@ load_cert_and_key(const char *certfile, const char *keyfile)
     return NULL;
   }
 
-  rr = rustls_certified_key_keys_match(certified_key);
+  rr = rustlsq_certified_key_keys_match(certified_key);
   if(rr != RUSTLS_RESULT_OK) {
     LOG("private key %s does not match certificate %s public key",
         keyfile,
         certfile);
     print_error("certified key mismatch", rr);
-    rustls_certified_key_free(certified_key);
+    rustlsq_certified_key_free(certified_key);
     return NULL;
   }
 
@@ -332,16 +332,16 @@ default_provider_with_custom_ciphersuite(const char *custom_ciphersuite_name)
   const rustls_crypto_provider *custom_provider = NULL;
 
   const size_t num_supported =
-    rustls_default_crypto_provider_ciphersuites_len();
+    rustlsq_default_crypto_provider_ciphersuites_len();
   for(size_t i = 0; i < num_supported; i++) {
     const rustls_supported_ciphersuite *suite =
-      rustls_default_crypto_provider_ciphersuites_get(i);
+      rustlsq_default_crypto_provider_ciphersuites_get(i);
     if(suite == NULL) {
       LOG("failed to get ciphersuite %zu", i);
       goto cleanup;
     }
 
-    const rustls_str suite_name = rustls_supported_ciphersuite_get_name(suite);
+    const rustls_str suite_name = rustlsq_supported_ciphersuite_get_name(suite);
     if(strncmp(suite_name.data, custom_ciphersuite_name, suite_name.len) ==
        0) {
       custom_ciphersuite = suite;
@@ -355,13 +355,13 @@ default_provider_with_custom_ciphersuite(const char *custom_ciphersuite_name)
   }
 
   rustls_result rr =
-    rustls_crypto_provider_builder_new_from_default(&provider_builder);
+    rustlsq_crypto_provider_builder_new_from_default(&provider_builder);
   if(rr != RUSTLS_RESULT_OK) {
     print_error("failed to create provider builder", rr);
     goto cleanup;
   }
 
-  rr = rustls_crypto_provider_builder_set_cipher_suites(
+  rr = rustlsq_crypto_provider_builder_set_cipher_suites(
     provider_builder, &custom_ciphersuite, 1);
   if(rr != RUSTLS_RESULT_OK) {
     print_error("failed to set custom ciphersuite", rr);
@@ -369,14 +369,14 @@ default_provider_with_custom_ciphersuite(const char *custom_ciphersuite_name)
   }
 
   rr =
-    rustls_crypto_provider_builder_build(provider_builder, &custom_provider);
+    rustlsq_crypto_provider_builder_build(provider_builder, &custom_provider);
   if(rr != RUSTLS_RESULT_OK) {
     print_error("failed to build custom provider", rr);
     goto cleanup;
   }
 
 cleanup:
-  rustls_crypto_provider_builder_free(provider_builder);
+  rustlsq_crypto_provider_builder_free(provider_builder);
   return custom_provider;
 }
 
@@ -438,11 +438,11 @@ void
 log_connection_info(const rustls_connection *rconn)
 {
   const rustls_handshake_kind hs_kind =
-    rustls_connection_handshake_kind(rconn);
-  const rustls_str hs_kind_name = rustls_handshake_kind_str(hs_kind);
+    rustlsq_connection_handshake_kind(rconn);
+  const rustls_str hs_kind_name = rustlsq_handshake_kind_str(hs_kind);
   LOG("handshake kind: %.*s", (int)hs_kind_name.len, hs_kind_name.data);
 
-  const int protocol = rustls_connection_get_protocol_version(rconn);
+  const int protocol = rustlsq_connection_get_protocol_version(rconn);
   const char *protocol_name;
   switch(protocol) {
   case RUSTLS_TLS_VERSION_TLSV1_2:
@@ -457,18 +457,18 @@ log_connection_info(const rustls_connection *rconn)
   LOG("negotiated protocol version: %s (%#x)", protocol_name, protocol);
 
   const int ciphersuite_id =
-    rustls_connection_get_negotiated_ciphersuite(rconn);
+    rustlsq_connection_get_negotiated_ciphersuite(rconn);
   const rustls_str ciphersuite_name =
-    rustls_connection_get_negotiated_ciphersuite_name(rconn);
+    rustlsq_connection_get_negotiated_ciphersuite_name(rconn);
   LOG("negotiated ciphersuite: %.*s (%#x)",
       (int)ciphersuite_name.len,
       ciphersuite_name.data,
       ciphersuite_id);
 
   const int kex_id =
-    rustls_connection_get_negotiated_key_exchange_group(rconn);
+    rustlsq_connection_get_negotiated_key_exchange_group(rconn);
   const rustls_str kex_name =
-    rustls_connection_get_negotiated_key_exchange_group_name(rconn);
+    rustlsq_connection_get_negotiated_key_exchange_group_name(rconn);
   LOG("negotiated key exchange: %.*s (%#x)",
       (int)kex_name.len,
       kex_name.data,
@@ -476,7 +476,7 @@ log_connection_info(const rustls_connection *rconn)
 
   const uint8_t *negotiated_alpn = NULL;
   size_t negotiated_alpn_len;
-  rustls_connection_get_alpn_protocol(
+  rustlsq_connection_get_alpn_protocol(
     rconn, &negotiated_alpn, &negotiated_alpn_len);
   if(negotiated_alpn != NULL) {
     LOG("negotiated ALPN protocol: '%.*s'",
@@ -490,7 +490,7 @@ log_connection_info(const rustls_connection *rconn)
   // We can unconditionally call this function whether we have a server
   // or client connection, as it will return an empty rustls_str if it was a
   // client connection.
-  const rustls_str sni = rustls_server_connection_get_server_name(rconn);
+  const rustls_str sni = rustlsq_server_connection_get_server_name(rconn);
   if(sni.len > 0) {
     LOG("client SNI: '%.*s'", (int)sni.len, sni.data);
   }

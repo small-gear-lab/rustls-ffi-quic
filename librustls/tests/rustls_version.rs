@@ -5,9 +5,9 @@ use std::path::PathBuf;
 
 use toml::Table;
 
-use rustls_ffi::rustls_version;
+use rustls_ffi::rustlsq_version;
 
-/// Test that the output of `rustls_version()` matches what we expect based on Cargo.toml state.
+/// Test that the output of `rustlsq_version()` matches what we expect based on Cargo.toml state.
 ///
 /// In particular this ensures that the Rustls version reported in the rustls-ffi version string
 /// matches the version of the Rustls dependency that rustls-ffi was built with.
@@ -47,11 +47,11 @@ fn rustls_version_match() {
     .expect("missing rustls dependency version")
     .trim_start_matches("=");
 
-    // Assert that rustls_version() returns a string of the form:
+    // Assert that rustlsq_version() returns a string of the form:
     //   $CRATE_NAME/$CRATE_VERSION/rustls/$RUSTLS_VERSION
     // E.g.:
     //   rustls-ffi/0.13.0/rustls/0.23.4
-    let rustls_ffi_version = rustls_version();
+    let rustls_ffi_version = rustlsq_version();
     let rustls_ffi_version = unsafe { rustls_ffi_version.to_str() };
     let rustls_ffi_version_parts = rustls_ffi_version.split('/').collect::<Vec<_>>();
     assert_eq!(

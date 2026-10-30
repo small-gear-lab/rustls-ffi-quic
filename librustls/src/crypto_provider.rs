@@ -67,7 +67,7 @@ impl CryptoProviderBuilder {
 /// `RUSTLS_RESULT_NO_DEFAULT_CRYPTO_PROVIDER` if no default provider has been registered.
 ///
 /// The caller owns the returned `rustls_crypto_provider_builder` and must free it using
-/// `rustls_crypto_provider_builder_free`.
+/// `rustlsq_crypto_provider_builder_free`.
 ///
 /// On error, `builder_out` is unchanged.
 ///
@@ -77,18 +77,18 @@ impl CryptoProviderBuilder {
 /// * Either:
 ///   * Use the default `aws-lc-rs` or `*ring*` provider that rustls-ffi is built with based on
 ///     the `CRYPTO_PROVIDER` build variable.
-///   * Call `rustls_crypto_provider_builder_new_with_base` with the desired provider, and
+///   * Call `rustlsq_crypto_provider_builder_new_with_base` with the desired provider, and
 ///     then install it as the process default with
-///     `rustls_crypto_provider_builder_build_as_default`.
+///     `rustlsq_crypto_provider_builder_build_as_default`.
 /// * Afterward, as required for customization:
-///   * Use `rustls_crypto_provider_builder_new_from_default` to get a builder backed by the
+///   * Use `rustlsq_crypto_provider_builder_new_from_default` to get a builder backed by the
 ///     default crypto provider.
-///   * Use `rustls_crypto_provider_builder_set_cipher_suites` to customize the supported
+///   * Use `rustlsq_crypto_provider_builder_set_cipher_suites` to customize the supported
 ///     ciphersuites.
-///   * Use `rustls_crypto_provider_builder_build` to build a customized provider.
+///   * Use `rustlsq_crypto_provider_builder_build` to build a customized provider.
 ///   * Provide that customized provider to client or server configuration builders.
 #[no_mangle]
-pub extern "C" fn rustls_crypto_provider_builder_new_from_default(
+pub extern "C" fn rustlsq_crypto_provider_builder_new_from_default(
     builder_out: *mut *mut rustls_crypto_provider_builder,
 ) -> rustls_result {
     ffi_panic_boundary! {
@@ -115,7 +115,7 @@ pub extern "C" fn rustls_crypto_provider_builder_new_from_default(
 /// as the base crypto provider to be customized.
 ///
 /// The caller owns the returned `rustls_crypto_provider_builder` and must free it using
-/// `rustls_crypto_provider_builder_free`.
+/// `rustlsq_crypto_provider_builder_free`.
 ///
 /// This function does not take ownership of `base`. The builder retains its own
 /// reference.
@@ -124,19 +124,19 @@ pub extern "C" fn rustls_crypto_provider_builder_new_from_default(
 /// or for constructing a custom crypto provider for a specific connection. A typical
 /// workflow could be to:
 ///
-/// * Call `rustls_crypto_provider_builder_new_with_base` with a custom provider
+/// * Call `rustlsq_crypto_provider_builder_new_with_base` with a custom provider
 /// * Install the custom provider as the process-wide default with
-///   `rustls_crypto_provider_builder_build_as_default`.
+///   `rustlsq_crypto_provider_builder_build_as_default`.
 ///
 /// Or, for per-connection customization:
 ///
-/// * Call `rustls_crypto_provider_builder_new_with_base` with a custom provider
-/// * Use `rustls_crypto_provider_builder_set_cipher_suites` to customize the supported
+/// * Call `rustlsq_crypto_provider_builder_new_with_base` with a custom provider
+/// * Use `rustlsq_crypto_provider_builder_set_cipher_suites` to customize the supported
 ///   ciphersuites.
-/// * Use `rustls_crypto_provider_builder_build` to build a customized provider.
+/// * Use `rustlsq_crypto_provider_builder_build` to build a customized provider.
 /// * Provide that customized provider to client or server configuration builders.
 #[no_mangle]
-pub extern "C" fn rustls_crypto_provider_builder_new_with_base(
+pub extern "C" fn rustlsq_crypto_provider_builder_new_with_base(
     base: *const rustls_crypto_provider,
 ) -> *mut rustls_crypto_provider_builder {
     ffi_panic_boundary! {
@@ -152,7 +152,7 @@ pub extern "C" fn rustls_crypto_provider_builder_new_with_base(
 /// Returns an error if the builder has already been built. Overwrites any previously
 /// set ciphersuites.
 #[no_mangle]
-pub extern "C" fn rustls_crypto_provider_builder_set_cipher_suites(
+pub extern "C" fn rustlsq_crypto_provider_builder_set_cipher_suites(
     builder: *mut rustls_crypto_provider_builder,
     cipher_suites: *const *const rustls_supported_ciphersuite,
     cipher_suites_len: size_t,
@@ -181,13 +181,13 @@ pub extern "C" fn rustls_crypto_provider_builder_set_cipher_suites(
 /// builder has already been built.
 ///
 /// The `rustls_crypto_provider_builder` builder is consumed and should not be used
-/// for further calls, except to `rustls_crypto_provider_builder_free`. The caller must
+/// for further calls, except to `rustlsq_crypto_provider_builder_free`. The caller must
 /// still free the builder after a successful build.
 ///
 /// On `RUSTLS_RESULT_OK`, `provider_out` receives a provider owned by the caller, which must
-/// eventually be freed with `rustls_crypto_provider_free`. On error, `provider_out` is unchanged.
+/// eventually be freed with `rustlsq_crypto_provider_free`. On error, `provider_out` is unchanged.
 #[no_mangle]
-pub extern "C" fn rustls_crypto_provider_builder_build(
+pub extern "C" fn rustlsq_crypto_provider_builder_build(
     builder: *mut rustls_crypto_provider_builder,
     provider_out: *mut *const rustls_crypto_provider,
 ) -> rustls_result {
@@ -204,16 +204,16 @@ pub extern "C" fn rustls_crypto_provider_builder_build(
 /// Builds a `rustls_crypto_provider` from the builder and sets it as the
 /// process-wide default crypto provider.
 ///
-/// Afterward, the default provider can be retrieved using `rustls_crypto_provider_default`.
+/// Afterward, the default provider can be retrieved using `rustlsq_crypto_provider_default`.
 ///
 /// This can only be done once per process, and will return an error if a
 /// default provider has already been set, or if the builder has already been built.
 ///
 /// The `rustls_crypto_provider_builder` builder is consumed and should not be used
-/// for further calls, except to `rustls_crypto_provider_builder_free`. The caller must
+/// for further calls, except to `rustlsq_crypto_provider_builder_free`. The caller must
 /// still free the builder after a successful build.
 #[no_mangle]
-pub extern "C" fn rustls_crypto_provider_builder_build_as_default(
+pub extern "C" fn rustlsq_crypto_provider_builder_build_as_default(
     builder: *mut rustls_crypto_provider_builder,
 ) -> rustls_result {
     let builder = try_mut_from_ptr!(builder);
@@ -228,7 +228,7 @@ pub extern "C" fn rustls_crypto_provider_builder_build_as_default(
 /// Calling with `NULL` is fine.
 /// Must not be called twice with the same value.
 #[no_mangle]
-pub extern "C" fn rustls_crypto_provider_builder_free(
+pub extern "C" fn rustlsq_crypto_provider_builder_free(
     builder: *mut rustls_crypto_provider_builder,
 ) {
     ffi_panic_boundary! {
@@ -239,10 +239,10 @@ pub extern "C" fn rustls_crypto_provider_builder_free(
 /// Return the `rustls_crypto_provider` backed by the `*ring*` cryptography library.
 ///
 /// The caller owns the returned `rustls_crypto_provider` and must free it using
-/// `rustls_crypto_provider_free`.
+/// `rustlsq_crypto_provider_free`.
 #[no_mangle]
 #[cfg(feature = "ring")]
-pub extern "C" fn rustls_ring_crypto_provider() -> *const rustls_crypto_provider {
+pub extern "C" fn rustlsq_ring_crypto_provider() -> *const rustls_crypto_provider {
     ffi_panic_boundary! {
         Arc::into_raw(Arc::new(ring::default_provider())) as *const rustls_crypto_provider
     }
@@ -251,10 +251,10 @@ pub extern "C" fn rustls_ring_crypto_provider() -> *const rustls_crypto_provider
 /// Return the `rustls_crypto_provider` backed by the `aws-lc-rs` cryptography library.
 ///
 /// The caller owns the returned `rustls_crypto_provider` and must free it using
-/// `rustls_crypto_provider_free`.
+/// `rustlsq_crypto_provider_free`.
 #[no_mangle]
 #[cfg(feature = "aws-lc-rs")]
-pub extern "C" fn rustls_aws_lc_rs_crypto_provider() -> *const rustls_crypto_provider {
+pub extern "C" fn rustlsq_aws_lc_rs_crypto_provider() -> *const rustls_crypto_provider {
     ffi_panic_boundary! {
         Arc::into_raw(Arc::new(aws_lc_rs::default_provider())) as *const rustls_crypto_provider
     }
@@ -268,12 +268,12 @@ pub extern "C" fn rustls_aws_lc_rs_crypto_provider() -> *const rustls_crypto_pro
 /// See the upstream [rustls FIPS documentation][FIPS] for more information.
 ///
 /// The caller owns the returned `rustls_crypto_provider` and must free it using
-/// `rustls_crypto_provider_free`.
+/// `rustlsq_crypto_provider_free`.
 ///
 /// [FIPS]: https://docs.rs/rustls/latest/rustls/manual/_06_fips/index.html
 #[no_mangle]
 #[cfg(feature = "fips")]
-pub extern "C" fn rustls_default_fips_provider() -> *const rustls_crypto_provider {
+pub extern "C" fn rustlsq_default_fips_provider() -> *const rustls_crypto_provider {
     ffi_panic_boundary! {
         Arc::into_raw(Arc::new(rustls::crypto::default_fips_provider()))
             as *const rustls_crypto_provider
@@ -283,12 +283,12 @@ pub extern "C" fn rustls_default_fips_provider() -> *const rustls_crypto_provide
 /// Retrieve a pointer to the process default `rustls_crypto_provider`.
 ///
 /// This may return `NULL` if no process default provider has been set using
-/// `rustls_crypto_provider_builder_build_as_default`.
+/// `rustlsq_crypto_provider_builder_build_as_default`.
 ///
 /// The caller owns the returned `rustls_crypto_provider` and must free it with
-/// `rustls_crypto_provider_free`.
+/// `rustlsq_crypto_provider_free`.
 #[no_mangle]
-pub extern "C" fn rustls_crypto_provider_default() -> *const rustls_crypto_provider {
+pub extern "C" fn rustlsq_crypto_provider_default() -> *const rustls_crypto_provider {
     ffi_panic_boundary! {
         match CryptoProvider::get_default() {
             Some(provider) => Arc::into_raw(provider.clone()) as *const rustls_crypto_provider,
@@ -310,12 +310,12 @@ impl Castable for rustls_crypto_provider {
 
 /// Returns the number of cipher suites the `rustls_crypto_provider` supports.
 ///
-/// Valid indices for `rustls_crypto_provider_ciphersuites_get` range from 0 (inclusive) to the
+/// Valid indices for `rustlsq_crypto_provider_ciphersuites_get` range from 0 (inclusive) to the
 /// returned length (exclusive).
 ///
 /// This function will return 0 if the `provider` is NULL.
 #[no_mangle]
-pub extern "C" fn rustls_crypto_provider_ciphersuites_len(
+pub extern "C" fn rustlsq_crypto_provider_ciphersuites_len(
     provider: *const rustls_crypto_provider,
 ) -> usize {
     ffi_panic_boundary! {
@@ -326,13 +326,13 @@ pub extern "C" fn rustls_crypto_provider_ciphersuites_len(
 /// Retrieve a pointer to a supported cipher suite of the `rustls_crypto_provider`.
 ///
 /// This function will return NULL if the `provider` is NULL, or if the index is out of bounds
-/// with respect to `rustls_crypto_provider_ciphersuites_len`.
+/// with respect to `rustlsq_crypto_provider_ciphersuites_len`.
 ///
 /// The lifetime of the returned `rustls_supported_ciphersuite` is equal to the lifetime of the
 /// `provider` and should not be used after the `provider` is freed. The returned pointer is
 /// borrowed and must not be freed.
 #[no_mangle]
-pub extern "C" fn rustls_crypto_provider_ciphersuites_get(
+pub extern "C" fn rustlsq_crypto_provider_ciphersuites_get(
     provider: *const rustls_crypto_provider,
     index: usize,
 ) -> *const rustls_supported_ciphersuite {
@@ -353,12 +353,12 @@ pub extern "C" fn rustls_crypto_provider_ciphersuites_get(
 ///
 /// When this function returns `RUSTLS_RESULT_OK`, a pointer to a `rustls_signing_key`
 /// is written to `signing_key_out`. The caller owns the returned `rustls_signing_key`
-/// and must free it with `rustls_signing_key_free`.
+/// and must free it with `rustlsq_signing_key_free`.
 ///
 /// The function copies the private key data and does not retain `private_key`. On error,
 /// `signing_key_out` is unchanged.
 #[no_mangle]
-pub extern "C" fn rustls_crypto_provider_load_key(
+pub extern "C" fn rustlsq_crypto_provider_load_key(
     provider: *const rustls_crypto_provider,
     private_key: *const u8,
     private_key_len: size_t,
@@ -391,7 +391,7 @@ pub extern "C" fn rustls_crypto_provider_load_key(
 ///
 /// Returns `RUSTLS_RESULT_OK` on success, or `RUSTLS_RESULT_GET_RANDOM_FAILED` on failure.
 #[no_mangle]
-pub extern "C" fn rustls_crypto_provider_random(
+pub extern "C" fn rustlsq_crypto_provider_random(
     provider: *const rustls_crypto_provider,
     buff: *mut u8,
     len: size_t,
@@ -411,10 +411,10 @@ pub extern "C" fn rustls_crypto_provider_random(
 ///
 /// This covers only the cryptographic parts of FIPS approval. There are also
 /// TLS protocol-level recommendations made by NIST. You should prefer to call
-/// `rustls_client_config_fips` or `rustls_server_config_fips` which take these
+/// `rustlsq_client_config_fips` or `rustlsq_server_config_fips` which take these
 /// into account.
 #[no_mangle]
-pub extern "C" fn rustls_crypto_provider_fips(provider: *const rustls_crypto_provider) -> bool {
+pub extern "C" fn rustlsq_crypto_provider_fips(provider: *const rustls_crypto_provider) -> bool {
     ffi_panic_boundary! {
         try_ref_from_ptr!(provider).fips()
     }
@@ -425,7 +425,7 @@ pub extern "C" fn rustls_crypto_provider_fips(provider: *const rustls_crypto_pro
 /// Calling with `NULL` is fine.
 /// Must not be called twice with the same value.
 #[no_mangle]
-pub extern "C" fn rustls_crypto_provider_free(provider: *const rustls_crypto_provider) {
+pub extern "C" fn rustlsq_crypto_provider_free(provider: *const rustls_crypto_provider) {
     ffi_panic_boundary! {
         free_arc(provider);
     }
@@ -433,12 +433,12 @@ pub extern "C" fn rustls_crypto_provider_free(provider: *const rustls_crypto_pro
 
 /// Returns the number of cipher suites the default process-wide crypto provider supports.
 ///
-/// Valid indices for `rustls_default_crypto_provider_ciphersuites_get` range from 0 (inclusive)
+/// Valid indices for `rustlsq_default_crypto_provider_ciphersuites_get` range from 0 (inclusive)
 /// to the returned length (exclusive).
 ///
 /// This function will return 0 if no process-wide default `rustls_crypto_provider` is available.
 #[no_mangle]
-pub extern "C" fn rustls_default_crypto_provider_ciphersuites_len() -> usize {
+pub extern "C" fn rustlsq_default_crypto_provider_ciphersuites_len() -> usize {
     ffi_panic_boundary! {
         match get_default_or_install_from_crate_features() {
             Some(provider) => provider.cipher_suites.len(),
@@ -450,13 +450,13 @@ pub extern "C" fn rustls_default_crypto_provider_ciphersuites_len() -> usize {
 /// Retrieve a pointer to a supported cipher suite of the default process-wide crypto provider.
 ///
 /// This function returns NULL if no process-wide default provider is available or if `index` is
-/// out of bounds with respect to `rustls_default_crypto_provider_ciphersuites_len`.
+/// out of bounds with respect to `rustlsq_default_crypto_provider_ciphersuites_len`.
 ///
 /// The lifetime of the returned `rustls_supported_ciphersuite` is static, as the process-wide
 /// default provider lives for as long as the process. The returned pointer is borrowed and must
 /// not be freed.
 #[no_mangle]
-pub extern "C" fn rustls_default_crypto_provider_ciphersuites_get(
+pub extern "C" fn rustlsq_default_crypto_provider_ciphersuites_get(
     index: usize,
 ) -> *const rustls_supported_ciphersuite {
     ffi_panic_boundary! {
@@ -480,7 +480,7 @@ pub extern "C" fn rustls_default_crypto_provider_ciphersuites_get(
 /// Returns `RUSTLS_RESULT_OK` on success, and one of `RUSTLS_RESULT_NO_DEFAULT_CRYPTO_PROVIDER`
 /// or `RUSTLS_RESULT_GET_RANDOM_FAILED` on failure.
 #[no_mangle]
-pub extern "C" fn rustls_default_crypto_provider_random(
+pub extern "C" fn rustlsq_default_crypto_provider_random(
     buff: *mut u8,
     len: size_t,
 ) -> rustls_result {
@@ -512,7 +512,7 @@ impl rustls_signing_key {
     /// Frees the `rustls_signing_key`. This is safe to call with a `NULL` argument, but
     /// must not be called twice with the same value.
     #[no_mangle]
-    pub extern "C" fn rustls_signing_key_free(signing_key: *mut rustls_signing_key) {
+    pub extern "C" fn rustlsq_signing_key_free(signing_key: *mut rustls_signing_key) {
         ffi_panic_boundary! {
             free_box(signing_key);
         }
@@ -521,8 +521,8 @@ impl rustls_signing_key {
 
 /// A collection of supported Hybrid Public Key Encryption (HPKE) suites.
 ///
-/// `rustls_hpke` can be provided to `rustls_client_config_builder_enable_ech` and
-/// `rustls_client_config_builder_enable_ech_grease()` to customize a
+/// `rustls_hpke` can be provided to `rustlsq_client_config_builder_enable_ech` and
+/// `rustlsq_client_config_builder_enable_ech_grease()` to customize a
 /// `rustls_client_config_builder` to use Encrypted Client Hello (ECH).
 pub struct rustls_hpke {
     _private: [u8; 0],
@@ -580,7 +580,7 @@ static AWS_LC_RS_HPKE: &Hpke = &Hpke {
 /// The returned pointer has a static lifetime equal to that of the program and does not
 /// need to be freed.
 #[no_mangle]
-pub extern "C" fn rustls_supported_hpke() -> *const rustls_hpke {
+pub extern "C" fn rustlsq_supported_hpke() -> *const rustls_hpke {
     ffi_panic_boundary! {
         #[cfg(feature = "aws-lc-rs")]
         {
@@ -638,22 +638,22 @@ mod tests {
     /// Simple smoketest of CSRNG fill with specific provider.
     #[test]
     fn random_data() {
-        let provider = rustls_crypto_provider_default();
+        let provider = rustlsq_crypto_provider_default();
         assert!(!provider.is_null());
 
         // NULL buffer should return an error.
-        let result = rustls_crypto_provider_random(provider, ptr::null_mut(), 1337);
+        let result = rustlsq_crypto_provider_random(provider, ptr::null_mut(), 1337);
         assert_eq!(result, rustls_result::NullParameter);
 
         let mut buff = vec![0; 32];
 
         // NULL provider should return an error and not touch buff.
-        let result = rustls_crypto_provider_random(ptr::null(), buff.as_mut_ptr(), buff.len());
+        let result = rustlsq_crypto_provider_random(ptr::null(), buff.as_mut_ptr(), buff.len());
         assert_eq!(buff, vec![0; 32]);
         assert_eq!(result, rustls_result::NullParameter);
 
         // Proper parameters should return OK and overwrite the buffer.
-        let result = rustls_crypto_provider_random(provider, buff.as_mut_ptr(), buff.len());
+        let result = rustlsq_crypto_provider_random(provider, buff.as_mut_ptr(), buff.len());
         assert_eq!(result, rustls_result::Ok);
         assert_ne!(buff, vec![0; 32]);
     }
@@ -662,13 +662,13 @@ mod tests {
     #[test]
     fn default_random_data() {
         // NULL buffer should return an error.
-        let result = rustls_default_crypto_provider_random(ptr::null_mut(), 1337);
+        let result = rustlsq_default_crypto_provider_random(ptr::null_mut(), 1337);
         assert_eq!(result, rustls_result::NullParameter);
 
         let mut buff = vec![0; 32];
 
         // Proper parameters should return OK and overwrite the buffer.
-        let result = rustls_default_crypto_provider_random(buff.as_mut_ptr(), buff.len());
+        let result = rustlsq_default_crypto_provider_random(buff.as_mut_ptr(), buff.len());
         assert_eq!(result, rustls_result::Ok);
         assert_ne!(buff, vec![0; 32]);
     }
@@ -676,11 +676,11 @@ mod tests {
     #[test]
     #[cfg(feature = "aws-lc-rs")]
     fn test_hpke_aws_lc_rs() {
-        let provider = rustls_crypto_provider_default();
+        let provider = rustlsq_crypto_provider_default();
         assert!(!provider.is_null());
         let provider = try_clone_arc!(provider);
 
-        let hpke = rustls_supported_hpke();
+        let hpke = rustlsq_supported_hpke();
         assert!(!hpke.is_null());
 
         let hpke = try_ref_from_ptr!(hpke);
@@ -694,6 +694,6 @@ mod tests {
     #[test]
     #[cfg(not(feature = "aws-lc-rs"))]
     fn test_hpke_not_aws_lc_rs() {
-        assert!(rustls_supported_hpke().is_null());
+        assert!(rustlsq_supported_hpke().is_null());
     }
 }

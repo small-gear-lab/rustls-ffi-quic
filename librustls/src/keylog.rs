@@ -7,8 +7,8 @@ use crate::rslice::rustls_str;
 
 /// An optional callback for logging key material.
 ///
-/// See the documentation on `rustls_client_config_builder_set_key_log` and
-/// `rustls_server_config_builder_set_key_log` for more information about the
+/// See the documentation on `rustlsq_client_config_builder_set_key_log` and
+/// `rustlsq_server_config_builder_set_key_log` for more information about the
 /// lifetimes of the parameters.
 pub type rustls_keylog_log_callback = Option<
     unsafe extern "C" fn(
@@ -22,8 +22,8 @@ pub type rustls_keylog_log_callback = Option<
 
 /// An optional callback for deciding if key material will be logged.
 ///
-/// See the documentation on `rustls_client_config_builder_set_key_log` and
-/// `rustls_server_config_builder_set_key_log` for more information about the
+/// See the documentation on `rustlsq_client_config_builder_set_key_log` and
+/// `rustlsq_server_config_builder_set_key_log` for more information about the
 /// lifetimes of the parameters.
 pub type rustls_keylog_will_log_callback = Option<unsafe extern "C" fn(label: rustls_str) -> c_int>;
 
@@ -84,5 +84,5 @@ unsafe impl Send for CallbackKeyLog {}
 
 /// Safety: Verifier is Sync if the C code passes us a callback that
 /// obeys the concurrency safety requirements documented in
-/// `rustls_client_config_builder_set_key_log` and `rustls_server_config_builder_set_key_log`.
+/// `rustlsq_client_config_builder_set_key_log` and `rustlsq_server_config_builder_set_key_log`.
 unsafe impl Sync for CallbackKeyLog {}

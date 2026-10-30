@@ -4,7 +4,7 @@ use libc::{c_void, size_t};
 
 use crate::error::rustls_io_result;
 
-/// A callback for `rustls_connection_read_tls`.
+/// A callback for `rustlsq_connection_read_tls`.
 ///
 /// An implementation of this callback should attempt to read up to `n` bytes from the
 /// network, storing them in `buf`. If any bytes were stored, the implementation should
@@ -24,7 +24,7 @@ use crate::error::rustls_io_result;
 /// should point to a struct containing, at a minimum, a file descriptor.
 ///
 /// The `buf` and `out_n` pointers are borrowed and should not be retained across calls.
-pub type rustls_read_callback = Option<
+pub type rustlsq_read_callback = Option<
     unsafe extern "C" fn(
         userdata: *mut c_void,
         buf: *mut u8,
@@ -57,7 +57,7 @@ impl Read for CallbackReader {
     }
 }
 
-/// A callback for `rustls_connection_write_tls` or `rustls_accepted_alert_write_tls`.
+/// A callback for `rustlsq_connection_write_tls` or `rustlsq_accepted_alert_write_tls`.
 ///
 /// An implementation of this callback should attempt to write the `n` bytes in `buf`
 /// to the network.
@@ -73,7 +73,7 @@ impl Read for CallbackReader {
 /// On other systems, any appropriate error code works.
 ///
 /// It's best to make one write attempt to the network per call. Additional writes will
-/// be triggered by subsequent calls to `rustls_connection_write_tls`.
+/// be triggered by subsequent calls to `rustlsq_connection_write_tls`.
 ///
 /// `userdata` is the value passed to the function invoking this callback. In most cases that
 /// should point to a struct containing, at a minimum, a file descriptor.
@@ -130,7 +130,7 @@ pub struct rustls_iovec {
     _private: [u8; 0],
 }
 
-/// A callback for `rustls_connection_write_tls_vectored`.
+/// A callback for `rustlsq_connection_write_tls_vectored`.
 ///
 /// An implementation of this callback should attempt to write the bytes in
 /// the given `count` iovecs to the network.

@@ -41,7 +41,7 @@ impl<'a> Castable for rustls_certificate<'a> {
 ///
 /// On error, the output parameters are unchanged.
 #[no_mangle]
-pub extern "C" fn rustls_certificate_get_der(
+pub extern "C" fn rustlsq_certificate_get_der(
     cert: *const rustls_certificate,
     out_der_data: *mut *const u8,
     out_der_len: *mut size_t,
@@ -94,9 +94,9 @@ impl rustls_certified_key {
     ///
     /// On success, this writes a pointer to the newly created
     /// `rustls_certified_key` in `certified_key_out`. That pointer must later
-    /// be freed with `rustls_certified_key_free` to avoid memory leaks. Note that
+    /// be freed with `rustlsq_certified_key_free` to avoid memory leaks. Note that
     /// internally, this is an atomically reference-counted pointer, so even after
-    /// the original caller has called `rustls_certified_key_free`, other objects
+    /// the original caller has called `rustlsq_certified_key_free`, other objects
     /// may retain a pointer to the object. The memory will be freed when all
     /// references are gone.
     ///
@@ -108,12 +108,12 @@ impl rustls_certified_key {
     ///
     /// Typically, you will build a `rustls_certified_key`, use it to create a
     /// `rustls_server_config` (which increments the reference count), and then
-    /// immediately call `rustls_certified_key_free`. That leaves the
+    /// immediately call `rustlsq_certified_key_free`. That leaves the
     /// `rustls_server_config` in possession of the sole reference, so the
     /// `rustls_certified_key`'s memory will automatically be released when
     /// the `rustls_server_config` is freed.
     #[no_mangle]
-    pub extern "C" fn rustls_certified_key_build(
+    pub extern "C" fn rustlsq_certified_key_build(
         cert_chain: *const u8,
         cert_chain_len: size_t,
         private_key: *const u8,
@@ -141,7 +141,7 @@ impl rustls_certified_key {
                 Err(e) => return map_error(e),
             };
 
-            Self::rustls_certified_key_build_with_signing_key(
+            Self::rustlsq_certified_key_build_with_signing_key(
                 cert_chain,
                 cert_chain_len,
                 to_boxed_mut_ptr(private_key),
@@ -158,13 +158,13 @@ impl rustls_certified_key {
     /// certificate first.
     ///
     /// `signing_key` must point to a `rustls_signing_key` loaded using a
-    /// `rustls_crypto_provider` and `rustls_crypto_provider_load_key()`.
+    /// `rustls_crypto_provider` and `rustlsq_crypto_provider_load_key()`.
     ///
     /// On success, this writes a pointer to the newly created
     /// `rustls_certified_key` in `certified_key_out`. That pointer must later
-    /// be freed with `rustls_certified_key_free` to avoid memory leaks. Note that
+    /// be freed with `rustlsq_certified_key_free` to avoid memory leaks. Note that
     /// internally, this is an atomically reference-counted pointer, so even after
-    /// the original caller has called `rustls_certified_key_free`, other objects
+    /// the original caller has called `rustlsq_certified_key_free`, other objects
     /// may retain a pointer to the object. The memory will be freed when all
     /// references are gone.
     ///
@@ -179,12 +179,12 @@ impl rustls_certified_key {
     ///
     /// Typically, you will build a `rustls_certified_key`, use it to create a
     /// `rustls_server_config` (which increments the reference count), and then
-    /// immediately call `rustls_certified_key_free`. That leaves the
+    /// immediately call `rustlsq_certified_key_free`. That leaves the
     /// `rustls_server_config` in possession of the sole reference, so the
     /// `rustls_certified_key`'s memory will automatically be released when
     /// the `rustls_server_config` is freed.
     #[no_mangle]
-    pub extern "C" fn rustls_certified_key_build_with_signing_key(
+    pub extern "C" fn rustlsq_certified_key_build_with_signing_key(
         cert_chain: *const u8,
         cert_chain_len: size_t,
         signing_key: *mut rustls_signing_key,
@@ -217,7 +217,7 @@ impl rustls_certified_key {
     ///
     /// The returned certificate is valid until the `rustls_certified_key` is freed.
     #[no_mangle]
-    pub extern "C" fn rustls_certified_key_get_certificate<'a>(
+    pub extern "C" fn rustlsq_certified_key_get_certificate<'a>(
         certified_key: *const rustls_certified_key,
         i: size_t,
     ) -> *const rustls_certificate<'a> {
@@ -238,9 +238,9 @@ impl rustls_certified_key {
     ///
     /// The function copies `ocsp_response` and does not take ownership of either input.
     /// On success, `cloned_key_out` receives an independently owned key that the caller must
-    /// free with `rustls_certified_key_free`. On error, `cloned_key_out` is unchanged.
+    /// free with `rustlsq_certified_key_free`. On error, `cloned_key_out` is unchanged.
     #[no_mangle]
-    pub extern "C" fn rustls_certified_key_clone_with_ocsp(
+    pub extern "C" fn rustlsq_certified_key_clone_with_ocsp(
         certified_key: *const rustls_certified_key,
         ocsp_response: *const rustls_slice_bytes,
         cloned_key_out: *mut *const rustls_certified_key,
@@ -266,7 +266,7 @@ impl rustls_certified_key {
     /// If the private key matches the certificate this function returns `RUSTLS_RESULT_OK`,
     /// otherwise an error `rustls_result` is returned.
     #[no_mangle]
-    pub extern "C" fn rustls_certified_key_keys_match(
+    pub extern "C" fn rustlsq_certified_key_keys_match(
         key: *const rustls_certified_key,
     ) -> rustls_result {
         ffi_panic_boundary! {
@@ -278,14 +278,14 @@ impl rustls_certified_key {
     }
 
     /// Release the caller's reference to a `rustls_certified_key` previously returned from
-    /// `rustls_certified_key_build`.
+    /// `rustlsq_certified_key_build`.
     ///
     /// Other objects may still hold internal references to the atomically reference-counted
     /// Rust object. Regardless, the caller must not use `key` after this function returns.
     ///
     /// Calling with NULL is fine. Must not be called twice with the same value.
     #[no_mangle]
-    pub extern "C" fn rustls_certified_key_free(key: *const rustls_certified_key) {
+    pub extern "C" fn rustlsq_certified_key_free(key: *const rustls_certified_key) {
         ffi_panic_boundary! {
             free_arc(key);
         }
@@ -295,8 +295,8 @@ impl rustls_certified_key {
 /// A `rustls_root_cert_store` being constructed.
 ///
 /// A builder can be modified by adding trust anchor root certificates with
-/// `rustls_root_cert_store_builder_add_pem`. Once you're done adding root certificates,
-/// call `rustls_root_cert_store_builder_build` to turn it into a `rustls_root_cert_store`.
+/// `rustlsq_root_cert_store_builder_add_pem`. Once you're done adding root certificates,
+/// call `rustlsq_root_cert_store_builder_build` to turn it into a `rustls_root_cert_store`.
 /// This object is not safe for concurrent mutation.
 pub struct rustls_root_cert_store_builder {
     _private: [u8; 0],
@@ -315,10 +315,10 @@ impl rustls_root_cert_store_builder {
     /// Create a `rustls_root_cert_store_builder`.
     ///
     /// The caller owns the returned builder and must eventually free it with
-    /// `rustls_root_cert_store_builder_free`, whether or not
-    /// `rustls_root_cert_store_builder_build` is called.
+    /// `rustlsq_root_cert_store_builder_free`, whether or not
+    /// `rustlsq_root_cert_store_builder_build` is called.
     #[no_mangle]
-    pub extern "C" fn rustls_root_cert_store_builder_new() -> *mut rustls_root_cert_store_builder {
+    pub extern "C" fn rustlsq_root_cert_store_builder_new() -> *mut rustls_root_cert_store_builder {
         ffi_panic_boundary! {
             let store = RootCertStore::empty();
             to_boxed_mut_ptr(Some(RootCertStoreBuilder { roots: store }))
@@ -337,7 +337,7 @@ impl rustls_root_cert_store_builder {
     ///
     /// This function copies the parsed certificates and does not retain `pem`.
     #[no_mangle]
-    pub extern "C" fn rustls_root_cert_store_builder_add_pem(
+    pub extern "C" fn rustlsq_root_cert_store_builder_add_pem(
         builder: *mut rustls_root_cert_store_builder,
         pem: *const u8,
         pem_len: size_t,
@@ -385,7 +385,7 @@ impl rustls_root_cert_store_builder {
     /// `filename` must be a NUL-terminated UTF-8 string. It is borrowed for the
     /// duration of the call and is not retained.
     #[no_mangle]
-    pub extern "C" fn rustls_root_cert_store_builder_load_roots_from_file(
+    pub extern "C" fn rustlsq_root_cert_store_builder_load_roots_from_file(
         builder: *mut rustls_root_cert_store_builder,
         filename: *const c_char,
         strict: bool,
@@ -433,10 +433,10 @@ impl rustls_root_cert_store_builder {
     /// The builder is consumed and cannot be used again, but must still be freed.
     ///
     /// On success, `root_cert_store_out` receives a new root certificate store. The caller owns
-    /// it and must free it with `rustls_root_cert_store_free` when no longer needed. The store can
+    /// it and must free it with `rustlsq_root_cert_store_free` when no longer needed. The store can
     /// be used in multiple verifier builders.
     #[no_mangle]
-    pub extern "C" fn rustls_root_cert_store_builder_build(
+    pub extern "C" fn rustlsq_root_cert_store_builder_build(
         builder: *mut rustls_root_cert_store_builder,
         root_cert_store_out: *mut *const rustls_root_cert_store,
     ) -> rustls_result {
@@ -451,11 +451,11 @@ impl rustls_root_cert_store_builder {
     }
 
     /// Free a `rustls_root_cert_store_builder` previously returned from
-    /// `rustls_root_cert_store_builder_new`.
+    /// `rustlsq_root_cert_store_builder_new`.
     ///
     /// Calling with NULL is fine. Must not be called twice with the same value.
     #[no_mangle]
-    pub extern "C" fn rustls_root_cert_store_builder_free(
+    pub extern "C" fn rustlsq_root_cert_store_builder_free(
         builder: *mut rustls_root_cert_store_builder,
     ) {
         ffi_panic_boundary! {
@@ -480,11 +480,11 @@ impl Castable for rustls_root_cert_store {
 
 impl rustls_root_cert_store {
     /// Free a `rustls_root_cert_store` previously returned from
-    /// `rustls_root_cert_store_builder_build`.
+    /// `rustlsq_root_cert_store_builder_build`.
     ///
     /// Calling with NULL is fine. Must not be called twice with the same value.
     #[no_mangle]
-    pub extern "C" fn rustls_root_cert_store_free(store: *const rustls_root_cert_store) {
+    pub extern "C" fn rustlsq_root_cert_store_free(store: *const rustls_root_cert_store) {
         ffi_panic_boundary! {
             free_arc(store);
         }

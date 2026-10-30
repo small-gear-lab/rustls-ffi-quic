@@ -51,7 +51,7 @@ int options_from_env(demo_client_options *opts);
 // Construct a rustls_client_config based on the provided demo_client_options.
 //
 // Caller owns the returned rustls_client_config and must free it with
-// rustls_client_config_free. The rustls_client_config must out-live any
+// rustlsq_client_config_free. The rustls_client_config must out-live any
 // demo_client_request_options made referencing it.
 //
 // Returns NULL on failure after printing error messages to stderr.
