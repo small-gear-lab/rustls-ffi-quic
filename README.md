@@ -1,3 +1,49 @@
+# rustls-ffi-quic
+
+[rustls-ffi](https://github.com/rustls/rustls-ffi) with a C API over `rustls::quic`, so that a QUIC stack can use
+[Rustls](https://github.com/rustls/rustls) for the TLS part of its handshake. It was made to build a curl with
+HTTP/3 and Encrypted Client Hello and no GPL library: ngtcp2 does QUIC, Rustls does TLS, and the pieces in between
+are here.
+
+**Status: it works, and it is experimental.** `curl --http3-only` and `curl --ech true` over HTTP/3 work against
+public servers. It is not audited, and not meant for anything that matters yet. What is missing is listed in
+[docs/design.md](docs/design.md) ("Not done yet"): 0-RTT and session resumption, Retry and key update are not
+exercised, client connections only.
+
+## What is different from rustls-ffi
+
+- **The QUIC API**, in `librustls/src/quic.rs` (`rustlsq_quic_*` in the library): the caller feeds the handshake bytes
+  of the CRYPTO frames to `read_hs`, takes what to send from `write_hs`, and gets the traffic secrets of each level,
+  which Rustls only shows through its key log.
+- **The exported functions are named `rustlsq_*`** (and not `rustls_*`), so that the library can be loaded in the same
+  process as rustls-ffi without the two answering for each other. The library is `librustls_quic`, the pkg-config
+  module `rustls-quic`, the headers are installed in `rustls-quic/`. `rustls_upstream_names.h`, which the header
+  includes, maps the names rustls-ffi has to the new ones, so that C code written for rustls-ffi (curl) compiles
+  unchanged. `downstream/rename-symbols.py` does the renaming from the sources, so that it can be made again.
+- **Following upstream**: this repository is a copy of rustls-ffi (its history is here) with our commits on top of an
+  upstream release. `downstream/update-upstream.sh <tag>` moves it to a new release; see "Following upstream" in
+  [docs/design.md](docs/design.md).
+
+The QUIC API is the one commit `Add a C API over rustls::quic for QUIC clients`, before the renaming: it can be taken
+as it is, and it is meant to be offered upstream.
+
+## How it is used
+
+- `ngtcp2-crypto-rustls`: the ngtcp2 crypto helper that uses this library (HKDF, AEAD and header protection are
+  OpenSSL's libcrypto). It is built from ngtcp2's `crypto/shared.c` and one file derived from ngtcp2's quictls helper.
+- curl: a patch lets `configure` use the `rustls-quic` module and makes the QUIC filter build its Rustls config.
+- The Debian packages (`librustls-quic`, `libngtcp2-crypto-rustls`, and curl with Rustls) are built from the recipes of
+  <https://github.com/small-gear-lab/apt-packaging>.
+
+## License
+
+As rustls-ffi: Apache-2.0 OR ISC OR MIT, at your option; see `NOTICE`. The changes made here are
+Copyright (c) 2026 Small Gear Lab and Marie, under the same three licenses.
+
+---
+
+*What follows is the README of rustls-ffi, as it is upstream.*
+
 # Rustls FFI bindings - use Rustls from any language
 
 [![Build Status](https://github.com/rustls/rustls-ffi/actions/workflows/test.yaml/badge.svg)](https://github.com/rustls/rustls-ffi/actions/workflows/test.yaml)

@@ -1,6 +1,8 @@
 # rustls-ffi-quic: design
 
-Status: **plan, nothing implemented yet.** The first step is a throw-away local experiment (see "Plan").
+Status: **works, experimental.** The QUIC API, the renaming, the ngtcp2 helper and a curl that uses them are built
+and packaged (see the APT repository, <https://github.com/small-gear-lab/apt-packaging>). HTTP/3, and ECH over
+HTTP/3, work against public servers. What is not done is listed under "Not done yet".
 
 ## Goal
 
@@ -130,47 +132,52 @@ one, and does HTTP/3 and ECH; against plain rustls-ffi 0.15.7 it builds without 
 functions. Both builds are to be checked when packaging. The CMake build of curl is not covered yet. Rewriting every call site instead remains possible if the headers
 approach turns out to be a problem.
 
-## The ngtcp2 side (the unknown part)
+## The ngtcp2 side
 
 curl's QUIC code (`lib/vquic/`) supports ngtcp2 and quiche only, and `vquic-tls.c` has branches for OpenSSL, GnuTLS
 and wolfSSL. ngtcp2 asks the TLS library for the **secrets** of each encryption level
 (`ngtcp2_crypto_derive_and_install_rx/tx_key`) plus HKDF, AEAD and header-protection primitives
 (41 declarations in `ngtcp2_crypto.h`). `rustls::quic` returns finished key objects and does not show the secrets.
 
-Bridge under test:
+How it is bridged:
 
-- get the traffic secrets through Rustls' `KeyLog` (rustls-ffi already has `set_key_log`);
-- HKDF / AEAD / header protection from aws-lc-rs, which is linked in anyway;
-- the helper is `crypto/rustls/rustls.c`, next to `crypto/wolfssl/wolfssl.c` (545 lines) and the other backends.
+- the traffic secrets come through Rustls' `KeyLog`: the connection works on a copy of the config whose key log keeps
+  the secrets of this connection (`rustlsq_quic_connection_secret`) and passes every line on to the key log the
+  config had;
+- HKDF, AEAD and header protection are OpenSSL's libcrypto, as in ngtcp2's own quictls helper;
+- the helper is `crypto/rustls/ngtcp2_crypto_rustls.c` of the package `ngtcp2-crypto-rustls` (it is built from
+  ngtcp2's `crypto/shared.c` and this file; the file is derived from `crypto/quictls/quictls.c`).
 
-Open questions:
+What was open, and is settled:
 
-- whether the `KeyLog` secret arrives before ngtcp2 needs the key;
-- the Retry integrity tag (`rustls::quic` has none, it is another AEAD operation);
-- 0-RTT and session resumption.
+- the `KeyLog` secret arrives before ngtcp2 needs the key: each secret exists from the moment the handshake bytes
+  that give it have been read, which is before `write_hs` reports the keys (measured, and checked by a test);
+- the Retry integrity tag is an AEAD operation that ngtcp2 does with the primitives of the helper, not a part of
+  `rustls::quic`; it is not tried against a server that sends a Retry yet;
+- `write_hs` has to be called after every `read_hs`, or the handshake bytes of two levels run together.
 
-If the secrets cannot be had in time, the fallback is a different shape of helper that uses the `PacketKey` objects
-directly, which means more of the ngtcp2 crypto layer is replaced.
+## Done, and not done yet
 
-## Plan
+Done:
 
-1. Local, throw-away: copy rustls-ffi 0.15.7, add a minimal QUIC C API (`ClientConnection::new_with_alpn`,
-   `read_hs`, `write_hs` / `KeyChange`, transport parameters), and complete a QUIC TLS handshake against a server
-   from a small C program.
-2. ngtcp2 `crypto/rustls` helper with the `KeyLog` bridge; check Retry and 0-RTT.
-3. curl: `USE_RUSTLS` branch in `vquic-tls.c` and the build-system changes above.
-4. Package `librustls-quic` and a `curl` flavour that uses it in the APT repository.
-5. Only then create the GitHub repositories and send the QUIC API upstream.
+1. The QUIC C API (`librustls/src/quic.rs`), with a test that runs a handshake against a `rustls::quic` server.
+2. The ngtcp2 helper, tried with a small client against cloudflare.com, www.google.com and quic.nginx.org (the
+   handshake is confirmed by the server), and a failure test with a CA that does not match (alert 48).
+3. curl: the `USE_RUSTLS` branch of `vquic-tls.c` and `cf-ngtcp2*.c`, and the build system. `curl --http3-only` works,
+   so does `--ech true` over HTTP/3 (`sni=encrypted`).
+4. Packages: `librustls-quic`, `libngtcp2-crypto-rustls`, and a Rustls flavour of curl.
 
-Each step ends with a decision whether the next one is worth it.
+Not done yet:
 
-## Still open
-
-- NTLM: needs DES from a TLS library. Options are a curl patch with an internal DES, NTLMv2 only, or `gss-ntlmssp`.
-  Not needed for the QUIC work.
-- Certificate pinning and `--capath`: possible as curl patches (`get_peer_certificate`, `add_pem` exist in
-  rustls-ffi).
-- Whether the `curl` package becomes this flavour for good or a separate package is kept next to the OpenSSL one.
+- **0-RTT and session resumption**: every connection does the full handshake; the early data keys of `rustls::quic`
+  are not exposed.
+- **Retry** and **key update** are not exercised: a transfer of about 1 MB is the longest one tried.
+- **Server side**: client connections only.
+- **NTLM**: needs DES from a TLS library. Options are a curl patch with an internal DES, NTLMv2 only, or
+  `gss-ntlmssp`.
+- **Certificate pinning** and **`--capath`**: possible as curl patches (`rustls_certificate_get_der`, `add_pem` exist
+  in rustls-ffi); for pinning over QUIC this library needs a function that returns the peer's certificate.
+- Sending the QUIC API upstream (see "Following upstream"), and the ngtcp2 helper to ngtcp2.
 
 ## Licensing
 
