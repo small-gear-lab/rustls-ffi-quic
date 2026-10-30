@@ -2588,6 +2588,16 @@ bool rustls_quic_connection_secret(const struct rustls_quic_connection *conn,
 uint16_t rustls_quic_connection_cipher_suite(const struct rustls_quic_connection *conn);
 
 /**
+ * The `i`-th certificate that the server sent, as DER (0 is the end-entity certificate). Returns false
+ * when there is none: before the handshake has got that far, or `i` is past the last. The pointer is valid
+ * until the connection is changed or freed.
+ */
+bool rustls_quic_connection_peer_certificate(const struct rustls_quic_connection *conn,
+                                             size_t i,
+                                             const uint8_t **der_out,
+                                             size_t *len_out);
+
+/**
  * The QUIC transport parameters of the peer, once they have arrived. The pointer is valid
  * until the connection is changed or freed.
  */

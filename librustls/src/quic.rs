@@ -270,6 +270,31 @@ impl rustls_quic_connection {
         }
     }
 
+    /// The `i`-th certificate that the server sent, as DER (0 is the end-entity certificate). Returns false
+    /// when there is none: before the handshake has got that far, or `i` is past the last. The pointer is valid
+    /// until the connection is changed or freed.
+    #[no_mangle]
+    pub extern "C" fn rustls_quic_connection_peer_certificate(
+        conn: *const rustls_quic_connection,
+        i: size_t,
+        der_out: *mut *const u8,
+        len_out: *mut size_t,
+    ) -> bool {
+        ffi_panic_boundary! {
+            let conn = crate::ffi::try_ref_from_ptr!(conn);
+            match conn.conn.peer_certificates().and_then(|certs| certs.get(i)) {
+                Some(cert) => {
+                    unsafe {
+                        *der_out = cert.as_ref().as_ptr();
+                        *len_out = cert.as_ref().len();
+                    }
+                    true
+                }
+                None => false,
+            }
+        }
+    }
+
     /// The QUIC transport parameters of the peer, once they have arrived. The pointer is valid
     /// until the connection is changed or freed.
     #[no_mangle]
@@ -353,6 +378,7 @@ mod tests {
             .unwrap()
             .map(|c| c.unwrap())
             .collect::<Vec<_>>();
+        let leaf_der = certs[0].as_ref().to_vec();
         let key = PrivateKeyDer::from_pem_file(dir("localhost/key.pem")).unwrap();
         let mut server_config = ServerConfig::builder_with_provider(provider)
             .with_protocol_versions(&[&rustls::version::TLS13])
@@ -436,6 +462,10 @@ mod tests {
             assert!(rustls_quic_connection::rustls_quic_connection_secret(conn, kind, s.as_mut_ptr(), 64, &mut n));
             assert_eq!(n, 48);
         }
+        let (mut c, mut cl) = (null(), 0usize);
+        assert!(rustls_quic_connection::rustls_quic_connection_peer_certificate(conn, 0, &mut c, &mut cl));
+        assert_eq!(unsafe { std::slice::from_raw_parts(c, cl) }, &leaf_der[..]);
+        assert!(!rustls_quic_connection::rustls_quic_connection_peer_certificate(conn, 99, &mut c, &mut cl));
         let suite = rustls_quic_connection::rustls_quic_connection_cipher_suite(conn);
         println!("cipher suite 0x{suite:04x}");
         assert!((0x1301..=0x1303).contains(&suite));
