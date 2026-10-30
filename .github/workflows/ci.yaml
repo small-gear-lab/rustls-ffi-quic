@@ -5,7 +5,7 @@ permissions:
 
 on:
   push:
-    branches: [main]
+    branches: [main, renamed]
   pull_request:
   workflow_dispatch:
 
@@ -16,11 +16,19 @@ jobs:
       - uses: actions/checkout@v4
       - name: Tests (aws-lc-rs, which Encrypted Client Hello and the QUIC test need)
         run: cargo test --locked --features aws-lc-rs
-      - name: The exported functions all have the prefix of this library
-        run: python3 downstream/rename-symbols.py --check
       - name: The header is what cbindgen makes of the sources
         run: |
           cargo install cbindgen --locked
           cd librustls
           cbindgen --output src/rustls.h
           git diff --exit-code src/rustls.h
+      - name: renamed - the exported functions all have the prefix of this library
+        if: github.ref_name == 'renamed'
+        run: python3 downstream/rename-symbols.py --check
+      - name: main - the renaming applies, and the renamed tree passes the tests
+        if: github.ref_name != 'renamed'
+        run: |
+          python3 downstream/rename-symbols.py
+          (cd librustls && cbindgen --output src/rustls.h)
+          python3 downstream/rename-symbols.py --check
+          cargo test --locked --features aws-lc-rs

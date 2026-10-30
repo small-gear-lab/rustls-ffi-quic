@@ -24,13 +24,18 @@ returning a `KeyChange`, `quic_transport_parameters`, `zero_rtt_keys`, `Keys::in
 
 ## Repositories
 
-- **Fork** of `rustls/rustls-ffi` on GitHub (branch `quic`): the QUIC C API only, as plain upstream-style
-  commits, to be offered as pull requests. Keeps upstream's names.
 - **This repository** (`rustls-ffi-quic`): a detached copy, with no fork relationship on GitHub. It was made by
   cloning `rustls/rustls-ffi` and setting `main` to the tag `v0.15.7`, so all of the upstream history is in it;
-  the remote `upstream` is the original, `origin` is this repository. It adds what upstream would not take: the
-  renamed exported symbols, `rustls-quic.h`, `librustls_quic`, the pkg-config file. The QUIC commits are carried
-  over from the fork.
+  the remote `upstream` is the original, `origin` is this repository. It has two branches:
+  - **`main`**: the upstream release it stands on, then our commits, **in the names that upstream uses**
+    (`rustls_*`, and `rustls_quic_*` for the QUIC API). It can be offered upstream as it is, and every change
+    is made here.
+  - **`renamed`**: `main` plus one commit, what `downstream/rename-symbols.py` makes of its sources (the exported
+    functions are `rustlsq_*`, the library `librustls_quic`, the pkg-config module `rustls-quic`). The packages are
+    built from the tags on this branch. It is made again, not rebased, whenever `main` has moved
+    (`downstream/make-renamed.sh`): the renaming conflicts with every change of a function.
+- **A fork** of `rustls/rustls-ffi` for pull requests of the QUIC API: made when the API is worth offering (the commits
+  of `main` that are about the API, as they are, without the renaming).
 - ngtcp2 helper (`crypto/rustls/`, see below): a branch of an ngtcp2 fork, or a separate library
   `libngtcp2_crypto_rustls`.
 - curl: patches in `packaging/curl/debian/patches/` of the APT repository.
@@ -42,43 +47,46 @@ Nothing is created on GitHub before it is confirmed.
 `main` is the upstream release it stands on (a tag such as `v0.15.7`) and our commits on top of it. A new upstream
 release is followed by putting our commits on the new tag, which is a rebase and rewrites the history of `main`.
 That is meant, and safe as long as what the packages are built from stays reachable: every commit that a deb is
-built from gets a tag (`v0.15.7+quic1`: the upstream tag, `+quic`, a counter), and a tag keeps its commit alive
-after `main` has moved on. `packaging/rustls-ffi-quic/REV` names that tag, not a hash.
+built from gets a tag on `renamed` (`v0.15.7+quic2`: the upstream tag, `+quic`, a counter), and a tag keeps its commit
+alive after `main` and `renamed` have moved on. `packaging/rustls-ffi-quic/REV` names that tag, not a hash.
 
-The renaming (see above) is a function of the sources, so it is not carried over but made again. Its commit is
-recognised by its subject, `Rename the exported functions with a prefix of their own`; keep that subject.
-
-`downstream/update-upstream.sh <tag>` does all of it, on a branch, without touching `main`:
+`downstream/update-upstream.sh <tag>` moves `main`, on a branch, without touching it:
 
 1. fetches the tag, finds the upstream release `main` stands on, checks that the new one comes after it;
-2. takes the commits of `main` since then, except the renaming commit and the commits that change nothing but
-   `downstream/rename-symbols.py` (its latest version is used), and cherry-picks them onto the new tag on the branch
-   `update/<tag>`. A conflict only in `librustls/src/rustls.h` is settled by making the header again with
-   cbindgen, as it is generated; any other conflict stops the script with the way back printed;
-3. makes `src/rustls.h` again if the release changed what the carried code gives;
-4. runs `downstream/rename-symbols.py` (the version of `main`), applies the hand-written part of the old renaming
-   commit (what it has outside the places the script writes to: the text of `docs/`), makes the header again and
-   commits it all with the message of the old renaming commit; a second run of the script must change nothing;
-5. runs the tests (`--no-test` skips them) and prints what is left to do by hand:
+2. cherry-picks the commits of `main` since then onto the new tag, on the branch `update/<tag>`. A conflict only in
+   `librustls/src/rustls.h` is settled by making the header again with cbindgen, as it is generated; a file that we
+   delete but that the release changed (the CI of rustls-ffi) stays deleted; any other conflict stops the script with
+   the way back printed;
+3. makes `src/rustls.h` again if the release changed what the carried code gives, and runs the tests (`--no-test`
+   skips them);
+4. prints what is left to do by hand:
 
         git switch main && git reset --hard update/<tag>
-        git tag <tag>+quic<N>
-        git push --force-with-lease origin main <tag>+quic<N>
+        downstream/make-renamed.sh --test                # the branch "renamed": main plus the renaming
+        git tag <tag>+quic<N> renamed
+        git push --force-with-lease origin main renamed <tag>+quic<N>
 
    `--force-with-lease` stops the push if someone else pushed in the meantime.
 
-The script was tried by moving this repository from `v0.15.7` to `v0.15.6` and back: the tree that came out is the
-same as the one that went in (`UPDATE_UPSTREAM_ANY_DIRECTION=1` allows the move to an older release, for that test).
+`downstream/make-renamed.sh [--test] [<branch>]` makes `renamed` from `main` (or another branch) by running
+`rename-symbols.py` and cbindgen, and commits the result as the one commit of the branch.
 
-What the script does not do is the packaging: `version=` and `srcversion=` in
-`packaging/rustls-ffi-quic/build.sh`, a changelog entry, `./build.sh fetch <tag>+quic<N>`, `./build.sh build`, and
-the soname, which carries the whole upstream version (`librustls_quic.so.0.15.7`), so a new upstream release is a new
-package name, `librustls-quic<version>`. A change of the C API of upstream that the QUIC API or the ngtcp2 helper
-depends on shows as a failing test or build; look at the release notes of rustls-ffi first.
+**A change** (the peer certificate for pinning over QUIC, say) is a normal commit on `main`, in the upstream names;
+then `downstream/make-renamed.sh` makes `renamed` again. The CI runs the tests on `main`, and also applies the renaming
+to a copy of it and runs them again, so a change that the renaming cannot carry is seen on `main`.
 
-To offer the QUIC API upstream, the commit `Add a C API over rustls::quic for QUIC clients` (before the renaming; its
-hash changes with every move to a new release) is the one to start from: put it on a branch of a fork of
-`rustls/rustls-ffi`, as it is, without the renaming.
+The two scripts were tried by moving this repository from `v0.15.7` to `v0.15.6` and back: the tree of `main` that
+came out is the one that went in (`UPDATE_UPSTREAM_ANY_DIRECTION=1` allows the move to an older release, for that
+test), and `renamed` made from it is the old one.
+
+What the scripts do not do is the packaging: `version=` and `srcversion=` in `packaging/rustls-ffi-quic/build.sh`, a
+changelog entry, `./build.sh fetch <tag>+quic<N>`, `./build.sh build`, and the soname, which carries the whole upstream
+version (`librustls_quic.so.0.15.7`), so a new upstream release is a new package name, `librustls-quic<version>`.
+A change of the C API of upstream that the QUIC API or the ngtcp2 helper depends on shows as a failing test or build;
+look at the release notes of rustls-ffi first.
+
+To offer the QUIC API upstream, the commits of `main` that are about it are the ones to put on a branch of a fork of
+`rustls/rustls-ffi`, as they are: `main` has no renaming in it.
 
 ## Names
 
@@ -108,7 +116,8 @@ prevent it, so every exported **function** is renamed:
   The 33 struct and enum names and the 10 callback typedef names do not take part in linking and stay as they are.
   Function declarations have `(` right after the name, callback typedefs have `)` (`(*rustls_x_callback)(`), so a
   regex tells them apart.
-- Done by `downstream/rename-symbols.py`, not by hand, and run again on every upstream update (it can be run twice,
+- Done by `downstream/rename-symbols.py`, not by hand: on `main` it is a script only, and the branch `renamed` is
+  what it makes of `main`, made again whenever `main` has moved (it can be run twice,
   and `--check` says whether it would change anything). It rewrites the Rust sources, the tests and the website
   content, and writes `rustls_upstream_names.h`; the header is then made by cbindgen from the renamed sources.
 - Symbol versioning was considered as an alternative and not tried (unproven for a Rust `cdylib`; an unversioned

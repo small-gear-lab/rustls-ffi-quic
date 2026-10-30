@@ -15,17 +15,19 @@ exercised, client connections only.
 - **The QUIC API**, in `librustls/src/quic.rs` (`rustlsq_quic_*` in the library): the caller feeds the handshake bytes
   of the CRYPTO frames to `read_hs`, takes what to send from `write_hs`, and gets the traffic secrets of each level,
   which Rustls only shows through its key log.
-- **The exported functions are named `rustlsq_*`** (and not `rustls_*`), so that the library can be loaded in the same
-  process as rustls-ffi without the two answering for each other. The library is `librustls_quic`, the pkg-config
+- **On `renamed`, the exported functions are named `rustlsq_*`** (and not `rustls_*`), so that the library can be loaded in the
+  same process as rustls-ffi without the two answering for each other. The library is `librustls_quic`, the pkg-config
   module `rustls-quic`, the headers are installed in `rustls-quic/`. `rustls_upstream_names.h`, which the header
   includes, maps the names rustls-ffi has to the new ones, so that C code written for rustls-ffi (curl) compiles
   unchanged. `downstream/rename-symbols.py` does the renaming from the sources, so that it can be made again.
-- **Following upstream**: this repository is a copy of rustls-ffi (its history is here) with our commits on top of an
-  upstream release. `downstream/update-upstream.sh <tag>` moves it to a new release; see "Following upstream" in
+- **Two branches**: `main` is rustls-ffi (its history is here) with our commits on top of an upstream release, in the
+  names that upstream uses, so it can be offered upstream as it is. **`renamed`** is `main` plus one commit, the
+  renaming; the packages are built from the tags on it. `downstream/update-upstream.sh <tag>` moves `main` to a new
+  release and `downstream/make-renamed.sh` makes `renamed` again; see "Following upstream" in
   [docs/design.md](docs/design.md).
 
-The QUIC API is the one commit `Add a C API over rustls::quic for QUIC clients`, before the renaming: it can be taken
-as it is, and it is meant to be offered upstream.
+The QUIC API is the commit `Add a C API over rustls::quic for QUIC clients` on `main`: it can be taken as it is, and it
+is meant to be offered upstream.
 
 ## How it is used
 
