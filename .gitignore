@@ -7,3 +7,4 @@ librustls/cmake-build*
 debian/usr
 debian/DEBIAN
 /website/public
+/vendor
