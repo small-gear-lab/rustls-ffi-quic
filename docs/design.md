@@ -48,9 +48,9 @@ hand. The upstream license files are never edited here; our copyright lines are 
 | repository, source package, crate | `rustls-ffi-quic` |
 | library | `librustls_quic.so.<soname>` |
 | Debian packages | `librustls-quic<ver>`, `librustls-quic-dev` |
-| header | `rustls-quic.h` |
+| header | `rustls-quic/rustls.h` (and `rustls-quic/rustls_upstream_names.h`) |
 | pkg-config module | `rustls-quic` |
-| exported C functions | `rustls_quic_<name>` (was `rustls_<name>`) |
+| exported C functions | `rustlsq_<name>` (was `rustls_<name>`) |
 
 The version differs from upstream's (for example `0.15.8-quic.1`), and the soname carries the whole version, as
 in the `librustls0.15.7` package.
@@ -61,13 +61,17 @@ A library with the same exported `rustls_*` functions would interpose with upstr
 in one process (curl pulls libraries in through other libraries, so this can happen). The file names alone do not
 prevent it, so every exported **function** is renamed:
 
-- `rustls_X` becomes `rustls_quic_X`: one to one, so it cannot collide with a new function.
-- Measured on rustls-ffi 0.15.7: 146 distinct functions in `rustls.h` (142 exported dynamic symbols).
+- `rustls_X` becomes `rustlsq_X`: one to one, so it cannot collide with a new function. The prefix
+  `rustls_quic_` was the first idea and does not work: the QUIC API is named after its object
+  (`rustls_quic_connection_free`), and the renamed `rustls_connection_free` would be the same name.
+- Measured on rustls-ffi 0.15.7: 146 distinct functions in `rustls.h` (142 exported dynamic symbols); with the QUIC API
+  155 and 151. The built `librustls_quic.so` exports 151 symbols, all `rustlsq_*`, none `rustls_*`.
   The 33 struct and enum names and the 10 callback typedef names do not take part in linking and stay as they are.
   Function declarations have `(` right after the name, callback typedefs have `)` (`(*rustls_x_callback)(`), so a
   regex tells them apart.
-- Done by a script from the header and the Rust `#[no_mangle]` / cbindgen names, not by hand, and run again on
-  every upstream update.
+- Done by `downstream/rename-symbols.py`, not by hand, and run again on every upstream update (it can be run twice,
+  and `--check` says whether it would change anything). It rewrites the Rust sources, the tests and the website
+  content, and writes `rustls_upstream_names.h`; the header is then made by cbindgen from the renamed sources.
 - Symbol versioning was considered as an alternative and not tried (unproven for a Rust `cdylib`; an unversioned
   reference could still bind to the wrong library).
 
@@ -75,13 +79,18 @@ prevent it, so every exported **function** is renamed:
 
 curl's `lib/vtls/rustls.c` calls 61 distinct `rustls_*` functions (97 calls). Rather than rewriting them:
 
-1. `rustls-quic.h` carries `#define rustls_foo rustls_quic_foo` for every function.
-2. curl's build looks for pkg-config `rustls-quic` first and falls back to `rustls`; with `rustls-quic` found it
-   includes `rustls-quic.h`, otherwise `rustls.h`.
-3. The code that uses the new QUIC functions is in `#ifdef` and only built with `rustls-quic`.
+1. `rustls_upstream_names.h`, included at the end of the header, carries `#define rustls_foo rustlsq_foo` for every
+   function.
+2. curl's `configure` looks for pkg-config `rustls-quic` first and falls back to `rustls`. The module's Cflags put
+   `rustls-quic/` on the include path, so `#include <rustls.h>` finds the renamed header, and the library check
+   uses `rustlsq_supported_hpke` in `librustls_quic`.
+3. The code that uses the QUIC API is in `#ifdef USE_HTTP3`; `configure` turns QUIC on only when the library has
+   `rustlsq_quic_client_connection_new`.
 
 So curl still builds against plain rustls-ffi, and with `rustls-quic` its objects no longer refer to upstream's
-names. Both builds are checked when packaging. Rewriting every call site instead remains possible if the headers
+names. Checked with curl 8.23.0: against `rustls-quic` libcurl refers to 67 `rustlsq_*` functions and no `rustls_*`
+one, and does HTTP/3 and ECH; against plain rustls-ffi 0.15.7 it builds without QUIC and refers to 58 `rustls_*`
+functions. Both builds are to be checked when packaging. The CMake build of curl is not covered yet. Rewriting every call site instead remains possible if the headers
 approach turns out to be a problem.
 
 ## The ngtcp2 side (the unknown part)
