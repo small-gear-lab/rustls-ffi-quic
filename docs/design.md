@@ -175,6 +175,9 @@ Done:
 3. curl: the `USE_RUSTLS` branch of `vquic-tls.c` and `cf-ngtcp2*.c`, and the build system. `curl --http3-only` works,
    so does `--ech true` over HTTP/3 (`sni=encrypted`).
 4. Packages: `librustls-quic`, `libngtcp2-crypto-rustls`, and a Rustls flavour of curl.
+5. `--capath` and `--pinnedpubkey` in curl's Rustls backend, as curl patches (`rustls_certificate_get_der` and
+   `add_pem` of rustls-ffi); for pinning over HTTP/3 this library returns the certificates of the server
+   (`rustls_quic_connection_peer_certificate`) and the ngtcp2 helper hands them to curl.
 
 Not done yet:
 
@@ -184,8 +187,6 @@ Not done yet:
 - **Server side**: client connections only.
 - **NTLM**: needs DES from a TLS library. Options are a curl patch with an internal DES, NTLMv2 only, or
   `gss-ntlmssp`.
-- **Certificate pinning** and **`--capath`**: possible as curl patches (`rustls_certificate_get_der`, `add_pem` exist
-  in rustls-ffi); for pinning over QUIC this library needs a function that returns the peer's certificate.
 - Sending the QUIC API upstream (see "Following upstream"), and the ngtcp2 helper to ngtcp2.
 
 ## Licensing
