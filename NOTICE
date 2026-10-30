@@ -1,0 +1,26 @@
+rustls-ffi-quic
+===============
+
+This is a derivative of rustls-ffi (https://github.com/rustls/rustls-ffi),
+the C bindings of Rustls. It starts from the upstream release v0.15.7 and keeps
+the upstream history, so the author of every upstream line can be seen in it.
+
+  Copyright (c) 2021, Jacob Hoffman-Andrews <jsha@letsencrypt.org>
+  and the other authors of rustls-ffi.
+
+The files LICENSE, LICENSE-APACHE, LICENSE-ISC and LICENSE-MIT are those of
+rustls-ffi, and are not changed here. Like rustls-ffi, this project may be used under the
+terms of any one of the Apache License 2.0, the ISC license or the MIT license,
+at your option.
+
+The changes made here (the QUIC C API, the renaming of the exported symbols,
+the build and packaging files) are
+
+  Copyright (c) 2026 Small Gear Lab
+  Copyright (c) 2026 Marie
+
+and are offered under the same three licenses, so that they can be sent
+upstream unchanged.
+
+Rust crates that are linked into the library keep their own licenses; the
+packaging (packaging/rustls-ffi in the small-gear-lab APT repository) lists them.
