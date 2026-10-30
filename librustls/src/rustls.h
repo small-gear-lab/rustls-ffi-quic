@@ -47,7 +47,7 @@
 #define RUSTLS_QUIC_KEYS_ONE_RTT 2
 
 /**
- * Which traffic secret `rustls_quic_connection_secret` returns.
+ * Which traffic secret `rustls_quic_connection_get_secret` returns.
  */
 #define RUSTLS_QUIC_SECRET_CLIENT_EARLY 0
 
@@ -2547,11 +2547,12 @@ rustls_result rustls_quic_connection_read_hs(struct rustls_quic_connection *conn
 
 /**
  * Take the handshake bytes to send, at the current encryption level. After them, the
- * connection may have new keys: `*keys_out` says which.
+ * connection may have new keys: `*keys_out` says which (`RUSTLS_QUIC_KEYS_*`).
  *
- * Writes at most `cap` bytes to `out` and the count to `*len_out`. If there is more, call
- * again with `*keys_out` still NONE; the keys are reported by the call that writes the
- * last bytes of the level.
+ * Writes at most `cap` bytes to `out` and the count to `*len_out`. If there are more, they are
+ * kept: call again, and `*keys_out` stays `RUSTLS_QUIC_KEYS_NONE` until the call that writes the
+ * last bytes of the level. Call this after every `rustls_quic_connection_read_hs`: the bytes of
+ * two levels would run together otherwise.
  */
 rustls_result rustls_quic_connection_write_hs(struct rustls_quic_connection *conn,
                                               uint8_t *out,
@@ -2565,45 +2566,56 @@ rustls_result rustls_quic_connection_write_hs(struct rustls_quic_connection *con
 bool rustls_quic_connection_is_handshaking(const struct rustls_quic_connection *conn);
 
 /**
- * The TLS alert to send when the handshake failed. Returns false when there is none.
+ * Get the TLS alert to send when the handshake failed (check it after `rustls_quic_connection_read_hs`
+ * returned an error). Stores it in `alert_out` and returns `RUSTLS_RESULT_OK`, or returns
+ * `RUSTLS_RESULT_NOT_FOUND` when there is none.
  */
-bool rustls_quic_connection_alert(const struct rustls_quic_connection *conn, uint8_t *alert_out);
+rustls_result rustls_quic_connection_get_alert(const struct rustls_quic_connection *conn,
+                                               uint8_t *alert_out);
 
 /**
- * Copy a traffic secret (`RUSTLS_QUIC_SECRET_*`) to `out`, at most `cap` bytes, and its length
- * to `*len_out`. Returns false while the secret does not exist yet. Each secret exists from the
- * moment the handshake bytes that give it have been read (`read_hs`), which is before
- * `write_hs` reports the keys.
+ * Copy a traffic secret (`RUSTLS_QUIC_SECRET_*`) to `out`, which has room for `cap` bytes, and its length
+ * to `*len_out`.
+ *
+ * Returns `RUSTLS_RESULT_NOT_FOUND` while the secret does not exist yet, `RUSTLS_RESULT_INVALID_PARAMETER`
+ * for an unknown `kind`, and `RUSTLS_RESULT_INSUFFICIENT_SIZE` if it does not fit (48 bytes are enough
+ * for every secret). Each secret exists from the moment the handshake bytes that give it have been read
+ * (`rustls_quic_connection_read_hs`), which is before `rustls_quic_connection_write_hs` reports the keys.
  */
-bool rustls_quic_connection_secret(const struct rustls_quic_connection *conn,
-                                   uint32_t kind,
-                                   uint8_t *out,
-                                   size_t cap,
-                                   size_t *len_out);
+rustls_result rustls_quic_connection_get_secret(const struct rustls_quic_connection *conn,
+                                                uint32_t kind,
+                                                uint8_t *out,
+                                                size_t cap,
+                                                size_t *len_out);
 
 /**
- * The IANA number of the negotiated TLS 1.3 cipher suite (0x1301, 0x1302 or 0x1303), or 0
- * while none is negotiated yet.
+ * Retrieves the [IANA registered cipher suite identifier] agreed with the peer (0x1301, 0x1302 or
+ * 0x1303 for TLS 1.3).
+ *
+ * This returns `TLS_NULL_WITH_NULL_NULL` (0x0000) until the ciphersuite is agreed.
+ *
+ * [IANA registered cipher suite identifier]: https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-4
  */
-uint16_t rustls_quic_connection_cipher_suite(const struct rustls_quic_connection *conn);
+uint16_t rustls_quic_connection_get_negotiated_ciphersuite(const struct rustls_quic_connection *conn);
 
 /**
- * The `i`-th certificate that the server sent, as DER (0 is the end-entity certificate). Returns false
- * when there is none: before the handshake has got that far, or `i` is past the last. The pointer is valid
- * until the connection is changed or freed.
+ * Get the `i`-th certificate that the server sent (0 is the end-entity certificate), or NULL when there is
+ * none: before the handshake has got that far, or `i` is past the last. Use `rustls_certificate_get_der` on
+ * it. The pointer is valid until the connection is changed or freed.
  */
-bool rustls_quic_connection_peer_certificate(const struct rustls_quic_connection *conn,
-                                             size_t i,
-                                             const uint8_t **der_out,
-                                             size_t *len_out);
+const struct rustls_certificate *rustls_quic_connection_get_peer_certificate(const struct rustls_quic_connection *conn,
+                                                                             size_t i);
 
 /**
- * The QUIC transport parameters of the peer, once they have arrived. The pointer is valid
- * until the connection is changed or freed.
+ * Get the QUIC transport parameters of the peer, as they came in the handshake. Stores a pointer to a
+ * borrowed buffer of bytes, and its length, in the output parameters; NULL and 0 while they have not
+ * arrived. The buffer is valid until the connection is changed or freed.
+ *
+ * If `conn` or either output parameter is NULL, both output values are unchanged.
  */
-bool rustls_quic_connection_peer_transport_parameters(const struct rustls_quic_connection *conn,
-                                                      const uint8_t **out,
-                                                      size_t *len_out);
+void rustls_quic_connection_get_peer_transport_parameters(const struct rustls_quic_connection *conn,
+                                                          const uint8_t **params_out,
+                                                          size_t *params_out_len);
 
 /**
  * Free a `rustls_quic_connection`. Calling with NULL is fine.

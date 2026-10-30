@@ -181,7 +181,7 @@ Done:
    helper (the integrity tag of the Retry, `quic ku` of the key update); Rustls is not in them.
 6. `--capath` and `--pinnedpubkey` in curl's Rustls backend, as curl patches (`rustls_certificate_get_der` and
    `add_pem` of rustls-ffi); for pinning over HTTP/3 this library returns the certificates of the server
-   (`rustls_quic_connection_peer_certificate`) and the ngtcp2 helper hands them to curl.
+   (`rustls_quic_connection_get_peer_certificate`) and the ngtcp2 helper hands them to curl.
 
 Not done yet:
 
