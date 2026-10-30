@@ -18,7 +18,9 @@ It rewrites the Rust sources and tests, the C tests, and the documentation under
 website/content. The header is written by cbindgen from the renamed sources: run
 `cbindgen --output src/rustls.h` in librustls afterwards. It also writes
 librustls/src/rustls_upstream_names.h, which maps the upstream names to the new ones, so that
-C code written against rustls-ffi (curl) compiles unchanged.
+C code written against rustls-ffi (curl) compiles unchanged, and makes the few changes to
+cbindgen.toml and librustls/Cargo.toml that go with it (the header includes that file; the
+library, the pkg-config module and the header directory get their own names).
 
 --check changes nothing and exits 1 if a run would change something.
 """
@@ -80,6 +82,35 @@ if not names_header.exists() or names_header.read_text() != new_names:
     changed.append(names_header.relative_to(root))
     if not check:
         names_header.write_text(new_names)
+
+# cbindgen.toml and Cargo.toml: each edit is made only while the file does not have its result yet
+def edit(path, old, new, done):
+    f = root / path
+    s = f.read_text()
+    if done in s:
+        return
+    if old not in s:
+        sys.exit("%s: cannot find the text to change (%r); upstream changed it?" % (path, old[:40]))
+    changed.append(f.relative_to(root))
+    if not check:
+        f.write_text(s.replace(old, new, 1))
+
+
+edit("librustls/cbindgen.toml", "usize_is_size_t = true",
+     '# the names of the functions of rustls-ffi, mapped to the ones this library exports\n'
+     'trailer = "#include \\"rustls_upstream_names.h\\""\n\nusize_is_size_t = true',
+     "rustls_upstream_names.h")
+cargo = "librustls/Cargo.toml"
+edit(cargo, '[package.metadata.capi.header]\nname = "rustls"\nsubdirectory = false',
+     '[package.metadata.capi.header]\nname = "rustls"\nsubdirectory = "rustls-quic"', 'subdirectory = "rustls-quic"')
+edit(cargo, '[package.metadata.capi.library]\nname = "rustls"',
+     '[package.metadata.capi.library]\nname = "rustls_quic"', 'name = "rustls_quic"')
+edit(cargo, '[package.metadata.capi.pkg_config]\nname = "rustls"\nfilename = "rustls"',
+     '[package.metadata.capi.pkg_config]\nname = "rustls-quic"\nfilename = "rustls-quic"', 'name = "rustls-quic"')
+edit(cargo, 'asset = [{ from = "src/rustls.h", to = "" }]',
+     'asset = [\n    { from = "src/rustls.h", to = "rustls-quic" },\n'
+     '    { from = "src/rustls_upstream_names.h", to = "rustls-quic" },\n]',
+     'rustls_upstream_names.h", to = "rustls-quic"')
 
 print("%d functions, %d files %s" % (len(functions), len(changed), "would change" if check else "changed"))
 if check and changed:
