@@ -51,7 +51,7 @@ send_response(const conndata *conn)
   *(response + n + body_size + 1) = '\0';
   response_size = strlen(response);
 
-  rustls_connection_write(rconn, (const uint8_t *)response, response_size, &n);
+  rustlsq_connection_write(rconn, (const uint8_t *)response, response_size, &n);
 
   free(response);
   if(n != response_size) {
@@ -61,20 +61,20 @@ send_response(const conndata *conn)
   return DEMO_OK;
 }
 
-/* Invoke rustls_connection_write_tls with either a vectored or unvectored
+/* Invoke rustlsq_connection_write_tls with either a vectored or unvectored
    callback, depending on environment variable. */
 rustls_io_result
 write_tls(rustls_connection *rconn, conndata *conn, size_t *n)
 {
 #ifdef _WIN32
-  return rustls_connection_write_tls(rconn, write_cb, conn, n);
+  return rustlsq_connection_write_tls(rconn, write_cb, conn, n);
 #else
   if(getenv("VECTORED_IO")) {
-    return rustls_connection_write_tls_vectored(
+    return rustlsq_connection_write_tls_vectored(
       rconn, write_vectored_cb, conn, n);
   }
 
-  return rustls_connection_write_tls(rconn, write_cb, conn, n);
+  return rustlsq_connection_write_tls(rconn, write_cb, conn, n);
 #endif /* _WIN32 */
 }
 
@@ -93,7 +93,7 @@ do_read(conndata *conn, rustls_connection *rconn)
 {
   size_t n = 0;
   char buf[1];
-  const int err = rustls_connection_read_tls(rconn, read_cb, conn, &n);
+  const int err = rustlsq_connection_read_tls(rconn, read_cb, conn, &n);
   if(err == EWOULDBLOCK) {
     LOG("reading from socket: EAGAIN or EWOULDBLOCK: %s", strerror(errno));
     return DEMO_AGAIN;
@@ -107,7 +107,7 @@ do_read(conndata *conn, rustls_connection *rconn)
   }
   LOG("read %zu bytes from socket", n);
 
-  const rustls_result rr = rustls_connection_process_new_packets(rconn);
+  const rustls_result rr = rustlsq_connection_process_new_packets(rconn);
   if(rr != RUSTLS_RESULT_OK) {
     print_error("in process_new_packets", rr);
     return DEMO_ERROR;
@@ -161,22 +161,22 @@ handle_conn(conndata *conn)
 
   for(;;) {
     FD_ZERO(&read_fds);
-    if(rustls_connection_wants_read(rconn)) {
+    if(rustlsq_connection_wants_read(rconn)) {
       FD_SET(sockfd, &read_fds);
     }
     FD_ZERO(&write_fds);
-    if(rustls_connection_wants_write(rconn)) {
+    if(rustlsq_connection_wants_write(rconn)) {
       FD_SET(sockfd, &write_fds);
     }
 
-    if(state == SENT_RESPONSE && !rustls_connection_wants_write(rconn)) {
+    if(state == SENT_RESPONSE && !rustlsq_connection_wants_write(rconn)) {
       LOG_SIMPLE(
         "sent response and rustls doesn't want write. closing connection");
       goto cleanup;
     }
 
-    if(!rustls_connection_wants_read(rconn) &&
-       !rustls_connection_wants_write(rconn)) {
+    if(!rustlsq_connection_wants_read(rconn) &&
+       !rustlsq_connection_wants_write(rconn)) {
       LOG_SIMPLE("rustls wants neither read nor write. closing connection");
       goto cleanup;
     }
@@ -309,7 +309,7 @@ main(const int argc, const char **argv)
     printf("customized to use ciphersuite: %s\n", custom_ciphersuite_name);
 
     const rustls_result rr =
-      rustls_server_config_builder_new_custom(custom_provider,
+      rustlsq_server_config_builder_new_custom(custom_provider,
                                               default_tls_versions,
                                               default_tls_versions_len,
                                               &config_builder);
@@ -319,7 +319,7 @@ main(const int argc, const char **argv)
     }
   }
   else {
-    config_builder = rustls_server_config_builder_new();
+    config_builder = rustlsq_server_config_builder_new();
   }
 
   certified_key = load_cert_and_key(certfile, keyfile);
@@ -327,9 +327,9 @@ main(const int argc, const char **argv)
     goto cleanup;
   }
 
-  rustls_server_config_builder_set_certified_keys(
+  rustlsq_server_config_builder_set_certified_keys(
     config_builder, &certified_key, 1);
-  rustls_server_config_builder_set_alpn_protocols(
+  rustlsq_server_config_builder_set_alpn_protocols(
     config_builder, &alpn_http11, 1);
 
   char *auth_cert = getenv("AUTH_CERT");
@@ -343,19 +343,19 @@ main(const int argc, const char **argv)
       goto cleanup;
     }
 
-    client_cert_root_store_builder = rustls_root_cert_store_builder_new();
-    rustls_result rr = rustls_root_cert_store_builder_add_pem(
+    client_cert_root_store_builder = rustlsq_root_cert_store_builder_new();
+    rustls_result rr = rustlsq_root_cert_store_builder_add_pem(
       client_cert_root_store_builder, (uint8_t *)certbuf, certbuf_len, true);
     if(rr != RUSTLS_RESULT_OK) {
       goto cleanup;
     }
-    rr = rustls_root_cert_store_builder_build(client_cert_root_store_builder,
+    rr = rustlsq_root_cert_store_builder_build(client_cert_root_store_builder,
                                               &client_cert_root_store);
     if(rr != RUSTLS_RESULT_OK) {
       goto cleanup;
     }
     client_cert_verifier_builder =
-      rustls_web_pki_client_cert_verifier_builder_new(client_cert_root_store);
+      rustlsq_web_pki_client_cert_verifier_builder_new(client_cert_root_store);
 
     if(auth_crl) {
       size_t crlbuf_len;
@@ -365,32 +365,32 @@ main(const int argc, const char **argv)
         goto cleanup;
       }
 
-      rr = rustls_web_pki_client_cert_verifier_builder_add_crl(
+      rr = rustlsq_web_pki_client_cert_verifier_builder_add_crl(
         client_cert_verifier_builder, (uint8_t *)crlbuf, crlbuf_len);
       if(rr != RUSTLS_RESULT_OK) {
         goto cleanup;
       }
     }
 
-    rr = rustls_web_pki_client_cert_verifier_builder_build(
+    rr = rustlsq_web_pki_client_cert_verifier_builder_build(
       client_cert_verifier_builder, &client_cert_verifier);
     if(rr != RUSTLS_RESULT_OK) {
       goto cleanup;
     }
-    rustls_server_config_builder_set_client_verifier(config_builder,
+    rustlsq_server_config_builder_set_client_verifier(config_builder,
                                                      client_cert_verifier);
   }
 
   if(getenv("SSLKEYLOGFILE")) {
     const rustls_result rr =
-      rustls_server_config_builder_set_key_log_file(config_builder);
+      rustlsq_server_config_builder_set_key_log_file(config_builder);
     if(rr != RUSTLS_RESULT_OK) {
       print_error("enabling keylog", rr);
       goto cleanup;
     }
   }
   else if(getenv("STDERRKEYLOG")) {
-    const rustls_result rr = rustls_server_config_builder_set_key_log(
+    const rustls_result rr = rustlsq_server_config_builder_set_key_log(
       config_builder, stderr_key_log_cb, NULL);
     if(rr != RUSTLS_RESULT_OK) {
       print_error("enabling keylog", rr);
@@ -408,7 +408,7 @@ main(const int argc, const char **argv)
       goto cleanup;
     }
     const rustls_result rr =
-      rustls_server_config_builder_set_max_tls13_tickets(config_builder,
+      rustlsq_server_config_builder_set_max_tls13_tickets(config_builder,
                                                          (size_t)max);
     if(rr != RUSTLS_RESULT_OK) {
       print_error("setting max TLS 1.3 tickets", rr);
@@ -418,7 +418,7 @@ main(const int argc, const char **argv)
   }
 
   rustls_result rr =
-    rustls_server_config_builder_build(config_builder, &server_config);
+    rustlsq_server_config_builder_build(config_builder, &server_config);
   if(rr != RUSTLS_RESULT_OK) {
     print_error("building server config", rr);
     goto cleanup;
@@ -478,7 +478,7 @@ main(const int argc, const char **argv)
 
     nonblock(clientfd);
 
-    rr = rustls_server_connection_new(server_config, &rconn);
+    rr = rustlsq_server_connection_new(server_config, &rconn);
     if(rr != RUSTLS_RESULT_OK) {
       print_error("making session", rr);
       goto cleanup;
@@ -487,10 +487,10 @@ main(const int argc, const char **argv)
     conndata *conndata = calloc(1, sizeof(struct conndata));
     conndata->fd = clientfd;
     conndata->rconn = rconn;
-    rustls_connection_set_userdata(rconn, conndata);
-    rustls_connection_set_log_callback(rconn, log_cb);
+    rustlsq_connection_set_userdata(rconn, conndata);
+    rustlsq_connection_set_log_callback(rconn, log_cb);
     handle_conn(conndata);
-    rustls_connection_free(rconn);
+    rustlsq_connection_free(rconn);
     rconn = NULL;
   }
 
@@ -498,15 +498,15 @@ main(const int argc, const char **argv)
   ret = 0;
 
 cleanup:
-  rustls_certified_key_free(certified_key);
-  rustls_root_cert_store_builder_free(client_cert_root_store_builder);
-  rustls_root_cert_store_free(client_cert_root_store);
-  rustls_web_pki_client_cert_verifier_builder_free(
+  rustlsq_certified_key_free(certified_key);
+  rustlsq_root_cert_store_builder_free(client_cert_root_store_builder);
+  rustlsq_root_cert_store_free(client_cert_root_store);
+  rustlsq_web_pki_client_cert_verifier_builder_free(
     client_cert_verifier_builder);
-  rustls_client_cert_verifier_free(client_cert_verifier);
-  rustls_server_config_free(server_config);
-  rustls_connection_free(rconn);
-  rustls_crypto_provider_free(custom_provider);
+  rustlsq_client_cert_verifier_free(client_cert_verifier);
+  rustlsq_server_config_free(server_config);
+  rustlsq_connection_free(rconn);
+  rustlsq_crypto_provider_free(custom_provider);
   if(sockfd > 0) {
     close(sockfd);
   }

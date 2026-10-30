@@ -24,6 +24,9 @@ after_includes = """
 #endif
 """
 
+# the names of the functions of rustls-ffi, mapped to the ones this library exports
+trailer = "#include \"rustls_upstream_names.h\""
+
 usize_is_size_t = true
 
 [fn]

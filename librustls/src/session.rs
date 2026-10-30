@@ -15,7 +15,7 @@ pub type rustls_session_store_userdata = *mut c_void;
 /// This callback will be invoked by a TLS session when looking up the data
 /// for a TLS session ID.
 ///
-/// `userdata` will be supplied based on `rustls_connection_set_userdata`.
+/// `userdata` will be supplied based on `rustlsq_connection_set_userdata`.
 ///
 /// The `buf` points to `count` consecutive bytes where the
 /// callback is expected to copy the result to. The number of copied bytes
@@ -63,7 +63,7 @@ pub(crate) type SessionStoreGetCallback = unsafe extern "C" fn(
 /// This callback will be invoked when a resumable TLS session has been created and a session ID
 /// has either been sent to the client or received from the server.
 ///
-/// `userdata` will be supplied based on `rustls_connection_set_userdata`.
+/// `userdata` will be supplied based on `rustlsq_connection_set_userdata`.
 ///
 /// The callback should return `RUSTLS_RESULT_OK` to indicate that a value was
 /// successfully stored, or `RUSTLS_RESULT_IO` on failure.

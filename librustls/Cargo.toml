@@ -46,17 +46,20 @@ toml = { workspace = true }
 
 [package.metadata.capi.header]
 name = "rustls"
-subdirectory = false
+subdirectory = "rustls-quic"
 generation = false # Prefer a vendored .h
 
 [package.metadata.capi.library]
-name = "rustls"
+name = "rustls_quic"
 version_suffix_components = 3
 rustflags = "-Cmetadata=rustls-ffi"
 
 [package.metadata.capi.pkg_config]
-name = "rustls"
-filename = "rustls"
+name = "rustls-quic"
+filename = "rustls-quic"
 
 [package.metadata.capi.install.include]
-asset = [{ from = "src/rustls.h", to = "" }]
+asset = [
+    { from = "src/rustls.h", to = "rustls-quic" },
+    { from = "src/rustls_upstream_names.h", to = "rustls-quic" },
+]
